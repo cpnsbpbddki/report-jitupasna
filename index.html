@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Data Kerusakan & Rehab Rekon</title>
+    <title>Sistem Data Kerusakan & Rehab Rekon</title>
     
     <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -51,21 +51,34 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        /* Marquee Animation for Admin Message */
+        .marquee-container { overflow: hidden; white-space: nowrap; }
+        .marquee-content { display: inline-block; animation: marquee 20s linear infinite; }
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect, useMemo, useCallback } = React;
 
-        // --- KONFIGURASI GOOGLE SHEET ---
-        // GANTI URL DI BAWAH INI DENGAN LINK CSV DARI "PUBLISH TO WEB" GOOGLE SHEET ANDA
-        // Cara: File > Share > Publish to web > Pilih Sheet > Pilih format CSV > Publish > Copy Link
-        const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSingzjvkI_INEqsjcOD2vYX5yZNOn8fikomTNU70munYuxBmjywDRrWNq0ehZTHN2OHSvVZE-xOKgN/pub?gid=1554825227&single=true&output=csv"; 
-        
-        // Catatan: URL di atas adalah contoh dummy agar tidak error saat pertama kali dijalankan.
-        // Jika URL Anda kosong atau salah, aplikasi akan menggunakan MOCK_DATA sebagai fallback.
+        // --- KONFIGURASI LINK SPREADSHEET ---
+        // Ganti URL di bawah ini dengan Link "Publish to Web" (CSV) dari masing-masing Sheet Anda.
+        const CONFIG = {
+            // Sheet 1: Data Kerusakan
+            DATA_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSingzjvkI_INEqsjcOD2vYX5yZNOn8fikomTNU70munYuxBmjywDRrWNq0ehZTHN2OHSvVZE-xOKgN/pub?gid=1554825227&single=true&output=csv",
+            
+            // Sheet 2: Users (Email, Password, Role, NamaLengkap, Dinas, NoHP)
+            USERS_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSingzjvkI_INEqsjcOD2vYX5yZNOn8fikomTNU70munYuxBmjywDRrWNq0ehZTHN2OHSvVZE-xOKgN/pub?gid=0&single=true&output=csv", // Kosongkan untuk menggunakan User Mock Data
+            
+            // Sheet 3: Settings (Key, Value) -> Kelurahan, Pesan Admin
+            SETTINGS_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSingzjvkI_INEqsjcOD2vYX5yZNOn8fikomTNU70munYuxBmjywDRrWNq0ehZTHN2OHSvVZE-xOKgN/pub?gid=762390479&single=true&output=csv" // Kosongkan untuk menggunakan Settings Mock Data
+        };
 
         // --- COMPONENTS ---
 
@@ -77,7 +90,6 @@
         };
 
         const StatusBadge = ({ status }) => {
-            // Normalisasi status untuk handle case sensitive atau spasi
             const safeStatus = (status || "").trim();
             const lowerStatus = safeStatus.toLowerCase();
             
@@ -97,7 +109,6 @@
 
         const DamageBar = ({ label, value }) => {
             const valStr = value || "0%";
-            // Extract percentage number
             const percentMatch = valStr.toString().match(/(\d+)%/);
             const percent = percentMatch ? parseInt(percentMatch[1]) : 0;
             
@@ -118,128 +129,18 @@
             );
         };
 
-        const DetailModal = ({ item, onClose }) => {
-            if (!item) return null;
+        // --- MOCK DATA FOR FALLBACK ---
+        
+        const MOCK_USERS = [
+            { Email: "subkelpk@rehabrekon.com", Password: "admin123", Role: "admin", NamaLengkap: "Administrator", Dinas: "BPBD DKI JAKARTA", NoHP: "08123456789" },
+            { Email: "test@gmail.com", Password: "test", Role: "user", NamaLengkap: "User Test", Dinas: "Kelurahan Test", NoHP: "08987654321" }
+        ];
 
-            return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-                        <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center z-10">
-                            <div>
-                                <h2 className="text-xl font-bold text-gray-800">Detail Laporan</h2>
-                                <p className="text-sm text-gray-500">ID: {item.id}</p>
-                            </div>
-                            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition">
-                                <Icon name="x" />
-                            </button>
-                        </div>
-                        
-                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Left Column: Image & Status */}
-                            <div>
-                                <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden mb-4 border">
-                                    <img 
-                                        src={item.fotoURL} 
-                                        alt="Foto Kerusakan" 
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {e.target.src='https://placehold.co/600x400?text=No+Image'}}
-                                    />
-                                </div>
-                                <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border">
-                                    <span className="text-gray-600 font-medium">Status Laporan</span>
-                                    <StatusBadge status={item.status} />
-                                </div>
-                                <div className="mt-4 space-y-2">
-                                    <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                                        <Icon name="user" size={16}/> Informasi Pelapor
-                                    </h3>
-                                    <div className="text-sm text-gray-600 pl-6 space-y-1">
-                                        <p><span className="font-medium">Nama:</span> {item.nama}</p>
-                                        <p><span className="font-medium">Email:</span> {item.email}</p>
-                                        <p><span className="font-medium">Pekerjaan:</span> {item.pekerjaan}</p>
-                                        <p><span className="font-medium">Penghasilan:</span> {typeof item.penghasilan === 'number' ? `Rp ${item.penghasilan.toLocaleString('id-ID')}` : item.penghasilan}</p>
-                                        <p><span className="font-medium">Anggota Keluarga:</span> {item.jmlKeluarga} (Anak Sekolah: {item.jmlAnak})</p>
-                                    </div>
-                                </div>
-                            </div>
+        const MOCK_SETTINGS = [
+            { A: "Kelurahan", B: "Jembatan Besi (Demo Mode)" },
+            { A: "Pesan Admin", B: "Selamat datang di Sistem Rehab Rekon. Pastikan data yang diinput valid." }
+        ];
 
-                            {/* Right Column: Technical Details */}
-                            <div className="space-y-6">
-                                <div>
-                                    <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                                        <Icon name="map-pin" size={16}/> Lokasi & Bangunan
-                                    </h3>
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
-                                        <div className="bg-gray-50 p-3 rounded border">
-                                            <p className="text-gray-500 text-xs">Alamat</p>
-                                            <p className="font-medium">{item.alamat}</p>
-                                            <p className="text-xs mt-1">RT {item.rt} / RW {item.rw}</p>
-                                        </div>
-                                        <div className="bg-gray-50 p-3 rounded border">
-                                            <p className="text-gray-500 text-xs">Legalitas</p>
-                                            <p className="font-medium">{item.jenisBangunan}</p>
-                                            <p className="text-xs mt-1">NJOP: {typeof item.hargaNJOP === 'number' ? `Rp ${item.hargaNJOP.toLocaleString('id-ID')}` : item.hargaNJOP}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                                        <Icon name="activity" size={16}/> Analisa Kerusakan
-                                    </h3>
-                                    <div className="bg-white border rounded-lg p-4 shadow-sm">
-                                        <DamageBar label="Atap" value={item.atap} />
-                                        <DamageBar label="Dinding" value={item.dinding} />
-                                        <DamageBar label="Lantai" value={item.lantai} />
-                                        <DamageBar label="Pondasi" value={item.pondasi} />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                                        <Icon name="dollar-sign" size={16}/> Estimasi Kerugian
-                                    </h3>
-                                    <div className="bg-red-50 border border-red-100 p-4 rounded-lg">
-                                        <p className="text-sm text-red-600">Total Kerugian Aset</p>
-                                        <p className="text-2xl font-bold text-red-700">{typeof item.kerugianAset === 'number' ? `Rp ${item.kerugianAset.toLocaleString('id-ID')}` : item.kerugianAset}</p>
-                                        <p className="text-xs text-red-500 mt-1">Aset: {item.asetTerdampak}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div className="bg-gray-50 px-6 py-4 rounded-b-xl flex justify-end gap-3">
-                             <button onClick={onClose} className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50">
-                                Tutup
-                            </button>
-                            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2">
-                                <Icon name="printer" size={16}/> Cetak Laporan
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const StatCard = ({ title, value, icon, color, trend }) => (
-            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition">
-                <div className="flex justify-between items-start">
-                    <div>
-                        <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
-                        <h3 className="text-2xl font-bold text-gray-800">{value}</h3>
-                    </div>
-                    <div className={`p-3 rounded-lg ${color} bg-opacity-10`}>
-                        <div className={color.replace('bg-', 'text-')}>
-                            <Icon name={icon} size={24} />
-                        </div>
-                    </div>
-                </div>
-                {trend && <p className="text-xs text-green-600 mt-4 flex items-center gap-1"><Icon name="trending-up" size={12}/> {trend}</p>}
-            </div>
-        );
-
-        // --- FALLBACK MOCK DATA ---
-        // Digunakan jika Google Sheet belum disetup atau gagal load
         const MOCK_DATA = [
             {
                 id: "3de03a6b-206a",
@@ -256,40 +157,118 @@
                 pekerjaan: "Wiraswasta", penghasilan: 5000000,
                 jmlKeluarga: 4, jmlAnak: 2,
                 hilangPenghasilan: 0, asetTerdampak: "Rumah Tinggal", kerugianAset: 50000000,
-                status: "Contoh"
+                status: "Verifikasi"
             }
         ];
 
-        function App() {
+        // --- LOGIN PAGE COMPONENT ---
+
+        const LoginPage = ({ onLogin, loading, error }) => {
+            const [email, setEmail] = useState("");
+            const [password, setPassword] = useState("");
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                onLogin(email, password);
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+                    <div className="max-w-md w-full bg-white rounded-xl shadow-xl overflow-hidden">
+                        <div className="bg-blue-600 p-8 text-center">
+                            <div className="bg-white/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
+                                <Icon name="shield-check" size={32} className="text-white" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-white">SiGap Bencana</h2>
+                            <p className="text-blue-100 text-sm mt-1">Sistem Login Terpadu</p>
+                        </div>
+                        
+                        <div className="p-8">
+                            {error && (
+                                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 flex items-center gap-2 border border-red-100">
+                                    <Icon name="alert-circle" size={16} /> {error}
+                                </div>
+                            )}
+
+                            <form onSubmit={handleSubmit} className="space-y-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <Icon name="mail" size={18} className="text-gray-400" />
+                                        </div>
+                                        <input 
+                                            type="email" 
+                                            required
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="nama@instansi.com"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <Icon name="lock" size={18} className="text-gray-400" />
+                                        </div>
+                                        <input 
+                                            type="password" 
+                                            required
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="••••••••"
+                                        />
+                                    </div>
+                                </div>
+                                <button 
+                                    type="submit" 
+                                    disabled={loading}
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition duration-200 flex justify-center items-center gap-2"
+                                >
+                                    {loading ? <div className="loader w-5 h-5 border-t-white border-2"></div> : "Masuk Aplikasi"}
+                                </button>
+                            </form>
+                            
+                            <div className="mt-6 text-center text-xs text-gray-400">
+                                <p>Gunakan akun yang terdaftar di Spreadsheet Users.</p>
+                                <p className="mt-1">Demo: subkelpk@rehabrekon.com / admin123</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- DASHBOARD COMPONENT ---
+
+        const Dashboard = ({ user, onLogout, settings }) => {
             const [data, setData] = useState([]);
             const [loading, setLoading] = useState(true);
-            const [error, setError] = useState(null);
             const [searchTerm, setSearchTerm] = useState("");
             const [viewMode, setViewMode] = useState("grid");
             const [selectedItem, setSelectedItem] = useState(null);
 
-            // Fetch Data from Google Sheet CSV
+            // Fetch Data Kerusakan
             useEffect(() => {
                 const fetchData = async () => {
                     setLoading(true);
                     
-                    // Cek jika URL masih default/kosong, gunakan mock data
-                    if (!GOOGLE_SHEET_CSV_URL || GOOGLE_SHEET_CSV_URL.includes("docs.google.com/spreadsheets/d/e/2PACX-1vR6y7q4z3F1f1r2x3g4h5i6j7k8l9m0n1o2p3q4r5s6t7u8v9w0x1y2z3a4b5c6d7e8f9g0h1i2j3k4")) {
-                        console.log("Using Mock Data (URL not configured)");
+                    if (!CONFIG.DATA_URL || CONFIG.DATA_URL.includes("docs.google.com/spreadsheets/d/e/2PACX-1vR6y7q4z3F1f1r2x3g4h5i6j7k8l9m0n1o2p3q4r5s6t7u8v9w0x1y2z3a4b5c6d7e8f9g0h1i2j3k4")) {
                         setData(MOCK_DATA);
                         setLoading(false);
                         return;
                     }
 
-                    Papa.parse(GOOGLE_SHEET_CSV_URL, {
+                    Papa.parse(CONFIG.DATA_URL, {
                         download: true,
                         header: true,
                         complete: (results) => {
                             try {
-                                // Transform data CSV ke format aplikasi
-                                // Kita asumsikan header CSV sesuai dengan file HTML sebelumnya
                                 const transformedData = results.data
-                                    .filter(row => row.ID || row.Nama) // Filter baris kosong
+                                    .filter(row => row.ID || row.Nama)
                                     .map(row => ({
                                         id: row.ID || Math.random().toString(36).substr(2, 9),
                                         email: row.UserEmail || "",
@@ -317,29 +296,22 @@
                                         kerugianAset: parseFloat((row.KerugianAset || "0").toString().replace(/[^0-9.-]+/g,"")),
                                         status: row.Status || "Verifikasi"
                                     }));
-                                
                                 setData(transformedData);
-                                setLoading(false);
                             } catch (err) {
-                                console.error("Error processing CSV data:", err);
-                                setError("Gagal memproses data dari Spreadsheet.");
-                                setData(MOCK_DATA); // Fallback
-                                setLoading(false);
+                                console.error("Error parsing data", err);
+                                setData(MOCK_DATA);
                             }
+                            setLoading(false);
                         },
-                        error: (err) => {
-                            console.error("Error fetching CSV:", err);
-                            setError("Gagal mengambil data. Pastikan link CSV benar & publik.");
-                            setData(MOCK_DATA); // Fallback
+                        error: () => {
+                            setData(MOCK_DATA);
                             setLoading(false);
                         }
                     });
                 };
-
                 fetchData();
             }, []);
-            
-            // Statistics calculation
+
             const stats = useMemo(() => {
                 const total = data.length;
                 const totalLoss = data.reduce((acc, curr) => acc + (curr.kerugianAset || 0), 0);
@@ -347,242 +319,320 @@
                 return { total, totalLoss, active };
             }, [data]);
 
-            // Filtering
             const filteredData = data.filter(item => 
                 (item.nama || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (item.alamat || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (item.status || "").toLowerCase().includes(searchTerm.toLowerCase())
             );
 
+            // Get Settings Values
+            const kelurahan = settings.find(s => s.key === 'Kelurahan')?.value || "Data Dashboard";
+            const adminMessage = settings.find(s => s.key === 'Pesan Admin')?.value || "";
+
+            const StatCard = ({ title, value, icon, color }) => (
+                <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
+                            <h3 className="text-2xl font-bold text-gray-800">{value}</h3>
+                        </div>
+                        <div className={`p-3 rounded-lg ${color} bg-opacity-10`}>
+                            <div className={color.replace('bg-', 'text-')}>
+                                <Icon name={icon} size={24} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const DetailModal = ({ item, onClose }) => {
+                if (!item) return null;
+                return (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center z-10">
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-800">Detail Laporan</h2>
+                                    <p className="text-sm text-gray-500">ID: {item.id}</p>
+                                </div>
+                                <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition">
+                                    <Icon name="x" />
+                                </button>
+                            </div>
+                            
+                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div>
+                                    <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden mb-4 border">
+                                        <img src={item.fotoURL} className="w-full h-full object-cover" onError={(e) => {e.target.src='https://placehold.co/600x400?text=No+Image'}} />
+                                    </div>
+                                    <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border">
+                                        <span className="text-gray-600 font-medium">Status</span>
+                                        <StatusBadge status={item.status} />
+                                    </div>
+                                </div>
+                                <div className="space-y-6">
+                                    <div>
+                                        <h3 className="font-semibold text-gray-800 mb-2">Informasi</h3>
+                                        <div className="grid grid-cols-2 gap-4 text-sm bg-gray-50 p-4 rounded border">
+                                            <div>
+                                                <p className="text-xs text-gray-500">Nama Pelapor</p>
+                                                <p className="font-medium">{item.nama}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500">Alamat</p>
+                                                <p className="font-medium">{item.alamat}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500">Kerugian</p>
+                                                <p className="font-medium text-red-600">Rp {item.kerugianAset.toLocaleString('id-ID')}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500">RT/RW</p>
+                                                <p className="font-medium">{item.rt}/{item.rw}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white border rounded-lg p-4 shadow-sm">
+                                        <DamageBar label="Atap" value={item.atap} />
+                                        <DamageBar label="Dinding" value={item.dinding} />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-gray-50 px-6 py-4 rounded-b-xl flex justify-end gap-3">
+                                <button onClick={onClose} className="px-4 py-2 border rounded-lg hover:bg-gray-100">Tutup</button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
             return (
                 <div className="min-h-screen pb-10">
+                    {/* Top Admin Banner */}
+                    {adminMessage && (
+                        <div className="bg-yellow-500 text-white text-sm py-2 px-4 overflow-hidden relative">
+                             <div className="marquee-container">
+                                <div className="marquee-content font-medium">
+                                    <span className="mx-4">📢 INFO PENTING: {adminMessage}</span>
+                                    <span className="mx-4">📢 INFO PENTING: {adminMessage}</span>
+                                    <span className="mx-4">📢 INFO PENTING: {adminMessage}</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Header */}
-                    <header className="bg-white border-b sticky top-0 z-30">
+                    <header className="bg-white border-b sticky top-0 z-30 shadow-sm">
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                             <div className="flex justify-between h-16 items-center">
                                 <div className="flex items-center gap-3">
                                     <div className="bg-blue-600 text-white p-2 rounded-lg">
-                                        <Icon name="shield-alert" size={24} />
+                                        <Icon name="layout-dashboard" size={24} />
                                     </div>
                                     <div>
-                                        <h1 className="text-xl font-bold text-gray-900 leading-tight">Live Report JITUPASNA</h1>
-                                        <p className="text-xs text-gray-500">Subkelompok Penilaian Kerusakan - BPBD DKI Provinsi DKI Jakarta</p>
+                                        <h1 className="text-xl font-bold text-gray-900 leading-tight">SiGap {kelurahan}</h1>
+                                        <p className="text-xs text-gray-500 hidden sm:block">Sistem Data Kerusakan & Rehab Rekon</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="hidden md:flex flex-col items-end mr-2">
-                                         <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded border border-green-100 flex items-center gap-1">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div> 
-                                            {loading ? 'Menghubungkan...' : 'Google Sheets Terhubung'}
-                                        </span>
+                                <div className="flex items-center gap-6">
+                                    {/* User Profile */}
+                                    <div className="hidden md:flex flex-col items-end">
+                                        <span className="text-sm font-semibold text-gray-800">{user.NamaLengkap}</span>
+                                        <span className="text-xs text-gray-500 bg-gray-100 px-2 rounded-full">{user.Dinas} ({user.Role})</span>
                                     </div>
-                                    <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold border border-blue-200">
-                                        A
-                                    </div>
+                                    
+                                    <button 
+                                        onClick={onLogout}
+                                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition"
+                                        title="Keluar"
+                                    >
+                                        <Icon name="log-out" size={20} />
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </header>
 
                     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                        
-                        {/* Status Message if Mock Data is used */}
-                        {!loading && data === MOCK_DATA && (
-                            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r">
-                                <div className="flex">
-                                    <div className="flex-shrink-0">
-                                        <Icon name="info" className="text-yellow-400" />
-                                    </div>
-                                    <div className="ml-3">
-                                        <p className="text-sm text-yellow-700">
-                                            Mode Demo: Menggunakan data contoh. Silakan edit kode dan masukkan link CSV Google Sheet Anda di variabel <code>GOOGLE_SHEET_CSV_URL</code>.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
                         {/* Stats Row */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                            <StatCard 
-                                title="Total Laporan" 
-                                value={loading ? "..." : stats.total} 
-                                icon="file-text" 
-                                color="bg-blue-500"
-                            />
-                            <StatCard 
-                                title="Estimasi Kerugian" 
-                                value={loading ? "..." : `Rp ${(stats.totalLoss / 1000000).toFixed(0)} Jt`} 
-                                icon="dollar-sign" 
-                                color="bg-red-500" 
-                            />
-                            <StatCard 
-                                title="Perlu Verifikasi" 
-                                value={loading ? "..." : stats.active} 
-                                icon="clock" 
-                                color="bg-yellow-500" 
-                            />
+                            <StatCard title="Total Laporan" value={loading ? "..." : stats.total} icon="file-text" color="bg-blue-500" />
+                            <StatCard title="Total Kerugian" value={loading ? "..." : `Rp ${(stats.totalLoss / 1000000).toFixed(0)} Jt`} icon="dollar-sign" color="bg-red-500" />
+                            <StatCard title="Butuh Verifikasi" value={loading ? "..." : stats.active} icon="clock" color="bg-yellow-500" />
                         </div>
 
-                        {/* Controls Toolbar */}
+                        {/* Controls */}
                         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                             <div className="relative w-full md:w-96">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <Icon name="search" size={18} className="text-gray-400" />
-                                </div>
+                                <Icon name="search" size={18} className="absolute left-3 top-3 text-gray-400" />
                                 <input
                                     type="text"
-                                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm"
-                                    placeholder="Cari nama, alamat, atau status..."
+                                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Cari data..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
-                            
-                            <div className="flex bg-white rounded-lg border p-1 shadow-sm">
-                                <button 
-                                    onClick={() => setViewMode('grid')}
-                                    className={`p-2 rounded ${viewMode === 'grid' ? 'bg-gray-100 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                                >
-                                    <Icon name="layout-grid" size={20} />
-                                </button>
-                                <button 
-                                    onClick={() => setViewMode('table')}
-                                    className={`p-2 rounded ${viewMode === 'table' ? 'bg-gray-100 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                                >
-                                    <Icon name="table" size={20} />
-                                </button>
+                            <div className="flex bg-white rounded-lg border p-1">
+                                <button onClick={() => setViewMode('grid')} className={`p-2 rounded ${viewMode === 'grid' ? 'bg-gray-100 text-blue-600' : 'text-gray-500'}`}><Icon name="layout-grid" size={20}/></button>
+                                <button onClick={() => setViewMode('table')} className={`p-2 rounded ${viewMode === 'table' ? 'bg-gray-100 text-blue-600' : 'text-gray-500'}`}><Icon name="table" size={20}/></button>
                             </div>
                         </div>
 
-                        {/* Content Area */}
+                        {/* Data Content */}
                         {loading ? (
-                            <div className="text-center py-20">
-                                <div className="loader mx-auto mb-4"></div>
-                                <p className="text-gray-500">Mengambil data dari Google Sheet...</p>
-                            </div>
+                            <div className="flex justify-center py-20"><div className="loader"></div></div>
                         ) : filteredData.length === 0 ? (
                             <div className="text-center py-20 bg-white rounded-xl border border-dashed">
-                                <div className="mx-auto h-12 w-12 text-gray-400">
-                                    <Icon name="search-x" size={48}/>
-                                </div>
-                                <h3 className="mt-2 text-sm font-medium text-gray-900">Data tidak ditemukan</h3>
-                                <p className="mt-1 text-sm text-gray-500">Coba kata kunci pencarian yang lain.</p>
+                                <Icon name="search-x" size={48} className="mx-auto text-gray-300 mb-2"/>
+                                <p className="text-gray-500">Data tidak ditemukan</p>
                             </div>
                         ) : viewMode === 'grid' ? (
-                            /* GRID VIEW */
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredData.map((item) => (
-                                    <div key={item.id} className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group">
-                                        <div className="relative h-48 bg-gray-200">
-                                            <img 
-                                                src={item.fotoURL} 
-                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                                alt="Damage"
-                                                onError={(e) => {e.target.src='https://placehold.co/600x400?text=No+Image'}}
-                                            />
-                                            <div className="absolute top-3 right-3">
-                                                <StatusBadge status={item.status} />
-                                            </div>
-                                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                                                <p className="text-white text-sm font-medium truncate">{item.alamat}</p>
-                                            </div>
+                                {filteredData.map(item => (
+                                    <div key={item.id} className="bg-white rounded-xl border hover:shadow-lg transition overflow-hidden group">
+                                        <div className="h-48 bg-gray-200 relative">
+                                            <img src={item.fotoURL} className="w-full h-full object-cover group-hover:scale-105 transition" onError={(e) => {e.target.src='https://placehold.co/600x400?text=No+Image'}} />
+                                            <div className="absolute top-3 right-3"><StatusBadge status={item.status} /></div>
                                         </div>
                                         <div className="p-5">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <h3 className="font-bold text-gray-800 text-lg truncate pr-2">{item.nama}</h3>
-                                                <span className="text-xs text-gray-500 whitespace-nowrap">{item.timestamp.split(' ')[0]}</span>
-                                            </div>
-                                            
-                                            <div className="space-y-2 mb-4">
-                                                <div className="flex items-center text-sm text-gray-600 gap-2">
-                                                    <Icon name="home" size={14} className="text-blue-500"/>
-                                                    <span>{item.jenisBangunan} - {item.ukuranTotal}m²</span>
-                                                </div>
-                                                <div className="flex items-center text-sm text-gray-600 gap-2">
-                                                    <Icon name="alert-triangle" size={14} className="text-orange-500"/>
-                                                    <span>Kerugian: Rp {item.kerugianAset.toLocaleString('id-ID')}</span>
-                                                </div>
-                                            </div>
-
-                                            <button 
-                                                onClick={() => setSelectedItem(item)}
-                                                className="w-full py-2 px-4 bg-gray-50 hover:bg-blue-50 text-blue-600 font-medium rounded-lg border border-gray-200 hover:border-blue-200 transition text-sm flex justify-center items-center gap-2"
-                                            >
-                                                Lihat Detail <Icon name="arrow-right" size={14}/>
-                                            </button>
+                                            <h3 className="font-bold text-gray-800 truncate">{item.nama}</h3>
+                                            <p className="text-sm text-gray-500 mb-4">{item.alamat}</p>
+                                            <button onClick={() => setSelectedItem(item)} className="w-full py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100">Detail</button>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         ) : (
-                            /* TABLE VIEW */
-                            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama / Tanggal</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alamat</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kerusakan Utama</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estimasi Kerugian</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                            <div className="bg-white rounded-xl border overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alamat</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kerugian</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {filteredData.map(item => (
+                                            <tr key={item.id} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.nama}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs">{item.alamat}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Rp {item.kerugianAset.toLocaleString('id-ID')}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap"><StatusBadge status={item.status} /></td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                                                    <button onClick={() => setSelectedItem(item)} className="text-blue-600 hover:text-blue-900">Lihat</button>
+                                                </td>
                                             </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
-                                            {filteredData.map((item) => (
-                                                <tr key={item.id} className="hover:bg-gray-50 transition">
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="flex items-center">
-                                                            <div>
-                                                                <div className="text-sm font-medium text-gray-900">{item.nama}</div>
-                                                                <div className="text-xs text-gray-500">{item.timestamp}</div>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="text-sm text-gray-900 line-clamp-1">{item.alamat}</div>
-                                                        <div className="text-xs text-gray-500">RT {item.rt} / RW {item.rw}</div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className="text-xs bg-red-50 text-red-700 px-2 py-1 rounded border border-red-100">
-                                                            Atap: {(item.atap || "-").split('-')[0]}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                        Rp {item.kerugianAset.toLocaleString('id-ID')}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <StatusBadge status={item.status} />
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                        <button 
-                                                            onClick={() => setSelectedItem(item)}
-                                                            className="text-blue-600 hover:text-blue-900"
-                                                        >
-                                                            Detail
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         )}
                     </main>
 
-                    {/* Footer */}
-                    <footer className="bg-white border-t mt-auto py-6">
-                        <div className="max-w-7xl mx-auto px-4 text-center text-sm text-gray-500">
-                            &copy; 2026 BPBD DKI Provinsi DKI Jakarta - Bidang Rehabilitasi dan Rekonstruksi. All rights reserved.
-                        </div>
-                    </footer>
+                    {selectedItem && <DetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />}
+                </div>
+            );
+        };
 
-                    {/* Modal */}
-                    {selectedItem && (
-                        <DetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />
+        // --- MAIN APP (AUTH MANAGER) ---
+
+        function App() {
+            const [user, setUser] = useState(null);
+            const [settings, setSettings] = useState([]);
+            const [loadingUser, setLoadingUser] = useState(false);
+            const [loginError, setLoginError] = useState("");
+            
+            // Check for existing session
+            useEffect(() => {
+                const storedUser = localStorage.getItem('siGapUser');
+                if (storedUser) {
+                    setUser(JSON.parse(storedUser));
+                }
+                
+                // Fetch Settings Immediately regardless of login
+                fetchSettings();
+            }, []);
+
+            const fetchSettings = () => {
+                if (!CONFIG.SETTINGS_URL) {
+                    setSettings(MOCK_SETTINGS.map(s => ({ key: s.A, value: s.B })));
+                    return;
+                }
+                Papa.parse(CONFIG.SETTINGS_URL, {
+                    download: true,
+                    header: false, // Settings sheet usually just key-value without complex headers
+                    complete: (results) => {
+                        // Assuming Column A is Key, Column B is Value
+                        // Skip row 1 if it is header
+                        const parsedSettings = results.data.slice(1).map(row => ({
+                            key: row[0],
+                            value: row[1]
+                        })).filter(s => s.key);
+                        setSettings(parsedSettings);
+                    }
+                });
+            };
+
+            const handleLogin = (email, password) => {
+                setLoadingUser(true);
+                setLoginError("");
+
+                if (!CONFIG.USERS_URL) {
+                    // Use Mock Auth
+                    setTimeout(() => {
+                        const foundUser = MOCK_USERS.find(u => u.Email === email && u.Password === password);
+                        if (foundUser) {
+                            setUser(foundUser);
+                            localStorage.setItem('siGapUser', JSON.stringify(foundUser));
+                        } else {
+                            setLoginError("Email atau Password salah!");
+                        }
+                        setLoadingUser(false);
+                    }, 1000);
+                    return;
+                }
+
+                // Real Auth via CSV
+                Papa.parse(CONFIG.USERS_URL, {
+                    download: true,
+                    header: true,
+                    complete: (results) => {
+                        const users = results.data;
+                        const foundUser = users.find(u => 
+                            u.Email?.trim() === email.trim() && 
+                            u.Password?.trim() === password.trim()
+                        );
+                        
+                        if (foundUser) {
+                            setUser(foundUser);
+                            localStorage.setItem('siGapUser', JSON.stringify(foundUser));
+                        } else {
+                            setLoginError("Email atau Password salah!");
+                        }
+                        setLoadingUser(false);
+                    },
+                    error: () => {
+                        setLoginError("Gagal menghubungi database user.");
+                        setLoadingUser(false);
+                    }
+                });
+            };
+
+            const handleLogout = () => {
+                setUser(null);
+                localStorage.removeItem('siGapUser');
+            };
+
+            return (
+                <div>
+                    {!user ? (
+                        <LoginPage onLogin={handleLogin} loading={loadingUser} error={loginError} />
+                    ) : (
+                        <Dashboard user={user} onLogout={handleLogout} settings={settings} />
                     )}
                 </div>
             );
