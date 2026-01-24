@@ -513,18 +513,18 @@
                 const details = [
                     [{content: 'DATA PELAPOR', colSpan: 2, styles: {fillColor: [220, 220, 220], fontStyle: 'bold'}}],
                     ["Nama Lengkap", item.nama],
+                    ["Email Pelapor", item.email],
                     ["Waktu Pelaporan", item.timestamp],
                     ["Pekerjaan", item.pekerjaan],
                     ["Penghasilan", `Rp ${item.penghasilan.toLocaleString('id-ID')}`],
                     ["Jumlah Anggota Keluarga", `${item.jmlKeluarga} orang (Anak Sekolah: ${item.jmlAnak})`],
-                    ["Email Pelapor", item.email],
                     
                     [{content: 'LOKASI & BANGUNAN', colSpan: 2, styles: {fillColor: [220, 220, 220], fontStyle: 'bold'}}],
                     ["Alamat Lengkap", item.alamat],
                     ["RT / RW", `${item.rt} / ${item.rw}`],
                     ["Jenis Legalitas", item.jenisBangunan],
                     ["Harga NJOP", `Rp ${item.hargaNJOP.toLocaleString('id-ID')}`],
-                    ["Lebar Bangunan", `${item.luasBangunan} m`],
+                    ["Luas Bangunan", `${item.luasBangunan} m²`],
                     ["Panjang Bangunan", `${item.panjangBangunan} m`],
                     ["Ukuran Total", `${item.ukuranTotal} m²`],
                     
@@ -537,7 +537,7 @@
                     
                     [{content: 'ANALISIS KERUGIAN', colSpan: 2, styles: {fillColor: [220, 220, 220], fontStyle: 'bold'}}],
                     ["Aset Terdampak", item.asetTerdampak],
-                    ["Hilang Penghasilan", `Rp ${item.hilangPenghasilantoLocaleString('id-ID')}`],
+                    ["Hilang Penghasilan", `Rp ${item.hilangPenghasilan}`],
                     ["Total Kerugian Aset", `Rp ${item.kerugianAset.toLocaleString('id-ID')}`]
                 ];
 
@@ -563,8 +563,7 @@
                 doc.setFontSize(9);
                 doc.setTextColor(100);
                 doc.text(`Dicetak dari Sistem SiJITUPASNA pada: ${new Date().toLocaleString()}`, 20, finalY + 40);
-                doc.text(`Bidang Rehabilirasi dan Rekonstruksi - Subkelompok Penilaian Kerusakan`, 20, finalY + 40);
-                doc.text(`BPBD Provinsi DKI Jakarta`, 20, finalY + 40);
+
                 doc.save(`Laporan_Lengkap_${item.nama.replace(/\s+/g, '_')}.pdf`);
             };
 
