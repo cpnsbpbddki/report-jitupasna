@@ -483,8 +483,8 @@
                 let y = 60;
 
                 doc.setFont("helvetica", "bold");
-                doc.text(`ID Laporan: ${item.id}`, 20, y);
-                doc.text(`Status: ${item.status}`, 20, y + 6);
+                doc.text(`Report-ID: ${item.id}`, 20, y);
+                doc.text(`Berikut adalah Laporan Hasil Pengkajian Pascabencana:`, 15, y + 6);
                 
                 if (item.fotoURL && !item.fotoURL.includes("placehold.co")) {
                     try {
@@ -492,7 +492,7 @@
                     } catch (e) {
                         doc.setFontSize(8);
                         doc.setTextColor(150);
-                        doc.text("(Foto tidak tersedia)", 140, 70);
+                        doc.text("(Petugas tidak melampirkan Foto)", 140, 70);
                     }
                 }
                 
@@ -501,18 +501,18 @@
                 const details = [
                     [{content: 'DATA PELAPOR', colSpan: 2, styles: {fillColor: [220, 220, 220], fontStyle: 'bold'}}],
                     ["Nama Lengkap", item.nama],
-                    ["Email Pelapor", item.email],
                     ["Waktu Pelaporan", item.timestamp],
                     ["Pekerjaan", item.pekerjaan],
                     ["Penghasilan", `Rp ${item.penghasilan.toLocaleString('id-ID')}`],
                     ["Jumlah Anggota Keluarga", `${item.jmlKeluarga} orang (Anak Sekolah: ${item.jmlAnak})`],
+                    ["Email Pelapor", item.email],
                     
                     [{content: 'LOKASI & BANGUNAN', colSpan: 2, styles: {fillColor: [220, 220, 220], fontStyle: 'bold'}}],
                     ["Alamat Lengkap", item.alamat],
                     ["RT / RW", `${item.rt} / ${item.rw}`],
                     ["Jenis Legalitas", item.jenisBangunan],
                     ["Harga NJOP", `Rp ${item.hargaNJOP.toLocaleString('id-ID')}`],
-                    ["Luas Bangunan", `${item.luasBangunan} m²`],
+                    ["Lebar Bangunan", `${item.luasBangunan} m`],
                     ["Panjang Bangunan", `${item.panjangBangunan} m`],
                     ["Ukuran Total", `${item.ukuranTotal} m²`],
                     
@@ -525,7 +525,7 @@
                     
                     [{content: 'ANALISIS KERUGIAN', colSpan: 2, styles: {fillColor: [220, 220, 220], fontStyle: 'bold'}}],
                     ["Aset Terdampak", item.asetTerdampak],
-                    ["Hilang Penghasilan", `Rp ${item.hilangPenghasilan}`],
+                    ["Hilang Penghasilan", `Rp ${item.hilangPenghasilan.toLocaleString('id-ID')}`],
                     ["Total Kerugian Aset", `Rp ${item.kerugianAset.toLocaleString('id-ID')}`]
                 ];
 
@@ -544,15 +544,17 @@
                 
                 doc.setFontSize(10);
                 doc.setTextColor(0,0,0);
-                doc.text("Mengetahui,", 140, finalY);
-                doc.text("Petugas BPBD / Verifikator", 140, finalY + 25);
+                doc.text("Verifikator,", 140, finalY);
+                doc.text("Petugas JITUPASNA", 140, finalY + 25);
                 doc.line(140, finalY + 24, 190, finalY + 24);
 
                 doc.setFontSize(9);
                 doc.setTextColor(100);
                 doc.text(`Dicetak dari Sistem SiJITUPASNA pada: ${new Date().toLocaleString()}`, 20, finalY + 40);
-
-                doc.save(`Laporan_Lengkap_${item.nama.replace(/\s+/g, '_')}.pdf`);
+                doc.text(`Bidang Rehabilitasi dan Rekonstruksi - Subkelompok Penilaian Kerusakan`, 20, finalY + 40);
+                doc.text(`BPBD Provinsi DKI Jakarta`, 20, finalY + 40);
+                
+                doc.save(`SiJitupasna_${item.nama.replace(/\s+/g, '_')}.pdf`);
             };
 
             const stats = useMemo(() => {
