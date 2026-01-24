@@ -21,6 +21,10 @@
     <!-- PapaParse for CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     
+    <!-- jsPDF for PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
@@ -66,18 +70,13 @@
 
     <script type="text/babel">
         const { useState, useEffect, useMemo, useCallback } = React;
+        const { jsPDF } = window.jspdf;
 
         // --- KONFIGURASI LINK SPREADSHEET ---
-        // Ganti URL di bawah ini dengan Link "Publish to Web" (CSV) dari masing-masing Sheet Anda.
         const CONFIG = {
-            // Sheet 1: Data Kerusakan
             DATA_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSingzjvkI_INEqsjcOD2vYX5yZNOn8fikomTNU70munYuxBmjywDRrWNq0ehZTHN2OHSvVZE-xOKgN/pub?gid=1554825227&single=true&output=csv",
-            
-            // Sheet 2: Users (Email, Password, Role, NamaLengkap, Dinas, NoHP)
-            USERS_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSingzjvkI_INEqsjcOD2vYX5yZNOn8fikomTNU70munYuxBmjywDRrWNq0ehZTHN2OHSvVZE-xOKgN/pub?gid=0&single=true&output=csv", // Kosongkan untuk menggunakan User Mock Data
-            
-            // Sheet 3: Settings (Key, Value) -> Kelurahan, Pesan Admin
-            SETTINGS_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSingzjvkI_INEqsjcOD2vYX5yZNOn8fikomTNU70munYuxBmjywDRrWNq0ehZTHN2OHSvVZE-xOKgN/pub?gid=762390479&single=true&output=csv" // Kosongkan untuk menggunakan Settings Mock Data
+            USERS_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSingzjvkI_INEqsjcOD2vYX5yZNOn8fikomTNU70munYuxBmjywDRrWNq0ehZTHN2OHSvVZE-xOKgN/pub?gid=0&single=true&output=csv", 
+            SETTINGS_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSingzjvkI_INEqsjcOD2vYX5yZNOn8fikomTNU70munYuxBmjywDRrWNq0ehZTHN2OHSvVZE-xOKgN/pub?gid=762390479&single=true&output=csv"
         };
 
         // --- COMPONENTS ---
@@ -95,7 +94,7 @@
             
             let colorClass = 'bg-gray-100 text-gray-700 border-gray-200';
             
-            if (lowerStatus === 'aktif' || lowerStatus === 'diterima') colorClass = 'bg-green-100 text-green-700 border-green-200';
+            if (lowerStatus === 'aktif' || lowerStatus === 'terverifikasi') colorClass = 'bg-green-100 text-green-700 border-green-200';
             else if (lowerStatus === 'verifikasi' || lowerStatus === 'diproses') colorClass = 'bg-yellow-100 text-yellow-700 border-yellow-200';
             else if (lowerStatus === 'selesai') colorClass = 'bg-blue-100 text-blue-700 border-blue-200';
             else if (lowerStatus === 'ditolak') colorClass = 'bg-red-100 text-red-700 border-red-200';
@@ -129,7 +128,7 @@
             );
         };
 
-        // --- MOCK DATA FOR FALLBACK ---
+        // --- MOCK DATA ---
         
         const MOCK_USERS = [
             { Email: "subkelpk@rehabrekon.com", Password: "admin123", Role: "admin", NamaLengkap: "Administrator", Dinas: "BPBD DKI JAKARTA", NoHP: "08123456789" },
@@ -138,15 +137,15 @@
 
         const MOCK_SETTINGS = [
             { A: "Kelurahan", B: "Jembatan Besi (Demo Mode)" },
-            { A: "Pesan Admin", B: "Selamat datang di Sistem Rehab Rekon. Pastikan data yang diinput valid." }
+            { A: "Pesan Admin", B: "Selamat datang di Sistem Rehab Rekon. Login sebagai Admin untuk Verifikasi." }
         ];
 
         const MOCK_DATA = [
             {
                 id: "3de03a6b-206a",
-                email: "contoh@rehabrekon.com",
+                email: "test@gmail.com", // Milik User Test
                 timestamp: "23/01/2026 13:47:07",
-                nama: "CONTOH DATA (Connect Sheet Anda)",
+                nama: "CONTOH DATA (Milik User Test)",
                 alamat: "Jl. Contoh Penggunaan No. 1",
                 rt: "01", rw: "01",
                 luasBangunan: 1, panjangBangunan: 1, ukuranTotal: 1.00,
@@ -158,10 +157,27 @@
                 jmlKeluarga: 4, jmlAnak: 2,
                 hilangPenghasilan: 0, asetTerdampak: "Rumah Tinggal", kerugianAset: 50000000,
                 status: "Verifikasi"
+            },
+            {
+                id: "dummy-admin-data",
+                email: "lain@gmail.com", // Bukan Milik User Test
+                timestamp: "24/01/2026 10:00:00",
+                nama: "Data Warga Lain",
+                alamat: "Jl. Merdeka No. 45",
+                rt: "02", rw: "05",
+                luasBangunan: 45, panjangBangunan: 10, ukuranTotal: 450,
+                atap: "Rusak Berat - 80%", dinding: "Rusak Berat - 70%", lantai: "Rusak Sedang - 40%", pondasi: "Sedang - 30%",
+                keterangan: "Atap rubuh total", jenisBangunan: "SHM",
+                hargaNJOP: 150000000,
+                fotoURL: "https://images.unsplash.com/photo-1505156472234-a169b008d754?auto=format&fit=crop&q=80&w=800",
+                pekerjaan: "Petani", penghasilan: 2000000,
+                jmlKeluarga: 5, jmlAnak: 3,
+                hilangPenghasilan: 1000000, asetTerdampak: "Rumah & Gudang", kerugianAset: 75000000,
+                status: "Terverifikasi"
             }
         ];
 
-        // --- LOGIN PAGE COMPONENT ---
+        // --- LOGIN PAGE ---
 
         const LoginPage = ({ onLogin, loading, error }) => {
             const [email, setEmail] = useState("");
@@ -179,8 +195,8 @@
                             <div className="bg-white/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
                                 <Icon name="shield-check" size={32} className="text-white" />
                             </div>
-                            <h2 className="text-2xl font-bold text-white">SiGap Bencana</h2>
-                            <p className="text-blue-100 text-sm mt-1">Sistem Login Terpadu</p>
+                            <h2 className="text-2xl font-bold text-white">Dashboard E-JITUPASNA</h2>
+                            <p className="text-blue-100 text-sm mt-1">BPBD Provinsi DKI Jakarta</p>
                         </div>
                         
                         <div className="p-8">
@@ -193,48 +209,27 @@
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <Icon name="mail" size={18} className="text-gray-400" />
-                                        </div>
-                                        <input 
-                                            type="email" 
-                                            required
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                                            placeholder="nama@instansi.com"
-                                        />
-                                    </div>
+                                    <input 
+                                        type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+                                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder="nama@instansi.com"
+                                    />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <Icon name="lock" size={18} className="text-gray-400" />
-                                        </div>
-                                        <input 
-                                            type="password" 
-                                            required
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                                            placeholder="••••••••"
-                                        />
-                                    </div>
+                                    <input 
+                                        type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
+                                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder="••••••••"
+                                    />
                                 </div>
-                                <button 
-                                    type="submit" 
-                                    disabled={loading}
-                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition duration-200 flex justify-center items-center gap-2"
-                                >
-                                    {loading ? <div className="loader w-5 h-5 border-t-white border-2"></div> : "Masuk Aplikasi"}
+                                <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition">
+                                    {loading ? "Loading..." : "Masuk Aplikasi"}
                                 </button>
                             </form>
-                            
                             <div className="mt-6 text-center text-xs text-gray-400">
-                                <p>Gunakan akun yang terdaftar di Spreadsheet Users.</p>
-                                <p className="mt-1">Demo: subkelpk@rehabrekon.com / admin123</p>
+                                <p>Gunakan user yang telah terdaftar pada E-FORM JITUPASNA</p>
+                                <p><a href="https://cpnsbpbddki.github.io/jitupasna/" target="_blank">Daftarkan User Anda!</a></p>
                             </div>
                         </div>
                     </div>
@@ -242,7 +237,7 @@
             );
         };
 
-        // --- DASHBOARD COMPONENT ---
+        // --- DASHBOARD ---
 
         const Dashboard = ({ user, onLogout, settings }) => {
             const [data, setData] = useState([]);
@@ -250,12 +245,12 @@
             const [searchTerm, setSearchTerm] = useState("");
             const [viewMode, setViewMode] = useState("grid");
             const [selectedItem, setSelectedItem] = useState(null);
+            const [toast, setToast] = useState(null);
 
-            // Fetch Data Kerusakan
+            // Fetch Data
             useEffect(() => {
                 const fetchData = async () => {
                     setLoading(true);
-                    
                     if (!CONFIG.DATA_URL || CONFIG.DATA_URL.includes("docs.google.com/spreadsheets/d/e/2PACX-1vR6y7q4z3F1f1r2x3g4h5i6j7k8l9m0n1o2p3q4r5s6t7u8v9w0x1y2z3a4b5c6d7e8f9g0h1i2j3k4")) {
                         setData(MOCK_DATA);
                         setLoading(false);
@@ -263,159 +258,190 @@
                     }
 
                     Papa.parse(CONFIG.DATA_URL, {
-                        download: true,
-                        header: true,
+                        download: true, header: true,
                         complete: (results) => {
-                            try {
-                                const transformedData = results.data
-                                    .filter(row => row.ID || row.Nama)
-                                    .map(row => ({
-                                        id: row.ID || Math.random().toString(36).substr(2, 9),
-                                        email: row.UserEmail || "",
-                                        timestamp: row.Timestamp || "",
-                                        nama: row.Nama || "Tanpa Nama",
-                                        alamat: row.Alamat || "",
-                                        rt: row.RT || "-", rw: row.RW || "-",
-                                        luasBangunan: row.LuasBangunan || 0, 
-                                        panjangBangunan: row.PanjangBangunan || 0,
-                                        ukuranTotal: row.UkuranTotal || 0,
-                                        atap: row.Atap || "Baik - 0%",
-                                        dinding: row.Dinding || "Baik - 0%",
-                                        lantai: row.Lantai || "Baik - 0%",
-                                        pondasi: row.Pondasi || "Baik - 0%",
-                                        keterangan: row.Keterangan || "",
-                                        jenisBangunan: row.JenisBangunan || "-",
-                                        hargaNJOP: parseFloat((row.HargaNJOP || "0").toString().replace(/[^0-9.-]+/g,"")),
-                                        fotoURL: row.FotoURL || "https://placehold.co/600x400?text=No+Image",
-                                        pekerjaan: row.Pekerjaan || "-",
-                                        penghasilan: parseFloat((row.Penghasilan || "0").toString().replace(/[^0-9.-]+/g,"")),
-                                        jmlKeluarga: row.JmlKeluarga || 0,
-                                        jmlAnak: row.JmlAnakSekolah || 0,
-                                        hilangPenghasilan: row.HilangPenghasilan || 0,
-                                        asetTerdampak: row.AsetTerdampak || "-",
-                                        kerugianAset: parseFloat((row.KerugianAset || "0").toString().replace(/[^0-9.-]+/g,"")),
-                                        status: row.Status || "Verifikasi"
-                                    }));
-                                setData(transformedData);
-                            } catch (err) {
-                                console.error("Error parsing data", err);
-                                setData(MOCK_DATA);
-                            }
+                            const transformedData = results.data.filter(row => row.ID || row.Nama).map(row => ({
+                                id: row.ID || Math.random().toString(36).substr(2, 9),
+                                email: row.UserEmail || "",
+                                timestamp: row.Timestamp || "",
+                                nama: row.Nama || "Tanpa Nama",
+                                alamat: row.Alamat || "",
+                                rt: row.RT || "-", rw: row.RW || "-",
+                                luasBangunan: row.LuasBangunan || 0, 
+                                atap: row.Atap || "Baik - 0%",
+                                dinding: row.Dinding || "Baik - 0%",
+                                lantai: row.Lantai || "Baik - 0%",
+                                pondasi: row.Pondasi || "Baik - 0%",
+                                keterangan: row.Keterangan || "",
+                                jenisBangunan: row.JenisBangunan || "-",
+                                hargaNJOP: parseFloat((row.HargaNJOP || "0").toString().replace(/[^0-9.-]+/g,"")),
+                                fotoURL: row.FotoURL || "https://placehold.co/600x400?text=No+Image",
+                                pekerjaan: row.Pekerjaan || "-",
+                                penghasilan: parseFloat((row.Penghasilan || "0").toString().replace(/[^0-9.-]+/g,"")),
+                                jmlKeluarga: row.JmlKeluarga || 0,
+                                jmlAnak: row.JmlAnakSekolah || 0,
+                                hilangPenghasilan: row.HilangPenghasilan || 0,
+                                asetTerdampak: row.AsetTerdampak || "-",
+                                kerugianAset: parseFloat((row.KerugianAset || "0").toString().replace(/[^0-9.-]+/g,"")),
+                                status: row.Status || "Verifikasi"
+                            }));
+                            setData(transformedData);
                             setLoading(false);
                         },
-                        error: () => {
-                            setData(MOCK_DATA);
-                            setLoading(false);
-                        }
+                        error: () => { setData(MOCK_DATA); setLoading(false); }
                     });
                 };
                 fetchData();
             }, []);
 
+            // --- PERMISSION LOGIC ---
+            const canEditDelete = (item) => {
+                if (!user) return false;
+                // Admin can edit all, User can only edit their own
+                return user.Role === 'admin' || user.Email === item.email;
+            };
+
+            const canVerify = () => {
+                return user && user.Role === 'admin';
+            };
+
+            // --- ACTION HANDLERS ---
+            
+            const handleUpdateStatus = (itemId, newStatus) => {
+                // Simulasi Update Local
+                const newData = data.map(item => item.id === itemId ? {...item, status: newStatus} : item);
+                setData(newData);
+                
+                // Update Selected Item juga jika sedang dibuka
+                if (selectedItem && selectedItem.id === itemId) {
+                    setSelectedItem({...selectedItem, status: newStatus});
+                }
+                
+                showToast("Status diperbarui (Lokal). Perubahan di Google Sheet memerlukan Apps Script.");
+            };
+
+            const handleDelete = (itemId) => {
+                if (window.confirm("Yakin ingin menghapus data ini?")) {
+                    const newData = data.filter(item => item.id !== itemId);
+                    setData(newData);
+                    setSelectedItem(null);
+                    showToast("Data dihapus (Lokal).");
+                }
+            };
+
+            const showToast = (msg) => {
+                setToast(msg);
+                setTimeout(() => setToast(null), 4000);
+            };
+
+            // --- EXPORT FUNCTIONS ---
+
+            const exportAllData = () => {
+                // Convert data to CSV format
+                const headers = ["ID", "Email", "Nama", "Alamat", "RT", "RW", "Kerugian", "Status"];
+                const csvRows = [];
+                csvRows.push(headers.join(","));
+
+                data.forEach(item => {
+                    const row = [
+                        item.id, item.email, `"${item.nama}"`, `"${item.alamat}"`, item.rt, item.rw, item.kerugianAset, item.status
+                    ];
+                    csvRows.push(row.join(","));
+                });
+
+                const csvString = csvRows.join("\n");
+                const blob = new Blob([csvString], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.setAttribute('hidden', '');
+                a.setAttribute('href', url);
+                a.setAttribute('download', 'Laporan_Semua_Data.csv');
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+
+            const generatePDF = (item) => {
+                const doc = new jsPDF();
+                
+                // Header
+                doc.setFillColor(37, 99, 235); // Blue
+                doc.rect(0, 0, 210, 40, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(22);
+                doc.text("LAPORAN HASIL VERIFIKASI", 105, 20, null, null, "center");
+                doc.setFontSize(10);
+                doc.text("Badan Rehabilitasi & Rekonstruksi", 105, 30, null, null, "center");
+
+                // Content
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(12);
+                let y = 50;
+
+                doc.text(`ID Laporan: ${item.id}`, 15, y); y += 10;
+                doc.text(`Status: ${item.status}`, 15, y); y += 10;
+                doc.line(15, y, 195, y); y += 10;
+
+                const details = [
+                    ["Nama Pelapor", item.nama],
+                    ["Alamat", item.alamat],
+                    ["RT / RW", `${item.rt} / ${item.rw}`],
+                    ["Jenis Bangunan", item.jenisBangunan],
+                    ["Total Kerugian", `Rp ${item.kerugianAset.toLocaleString('id-ID')}`],
+                    ["Kondisi Atap", item.atap],
+                    ["Kondisi Dinding", item.dinding],
+                    ["Kondisi Lantai", item.lantai]
+                ];
+
+                doc.autoTable({
+                    startY: y,
+                    head: [['Parameter', 'Detail']],
+                    body: details,
+                    theme: 'grid',
+                    headStyles: { fillColor: [50, 50, 50] }
+                });
+
+                // Footer
+                doc.setFontSize(10);
+                doc.text(`Dicetak pada: ${new Date().toLocaleString()}`, 15, 280);
+                doc.text("Dokumen ini sah dan telah diverifikasi secara elektronik.", 15, 285);
+
+                doc.save(`Laporan_${item.nama.replace(/\s+/g, '_')}.pdf`);
+            };
+
+            // Stats
             const stats = useMemo(() => {
                 const total = data.length;
                 const totalLoss = data.reduce((acc, curr) => acc + (curr.kerugianAset || 0), 0);
-                const active = data.filter(d => (d.status || "").toLowerCase().includes('verifikasi') || (d.status || "").toLowerCase().includes('aktif')).length;
-                return { total, totalLoss, active };
+                const verified = data.filter(d => (d.status || "").toLowerCase().includes('terverifikasi')).length;
+                return { total, totalLoss, verified };
             }, [data]);
 
             const filteredData = data.filter(item => 
                 (item.nama || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (item.alamat || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (item.status || "").toLowerCase().includes(searchTerm.toLowerCase())
+                (item.alamat || "").toLowerCase().includes(searchTerm.toLowerCase())
             );
 
-            // Get Settings Values
+            // Admin Settings
             const kelurahan = settings.find(s => s.key === 'Kelurahan')?.value || "Data Dashboard";
             const adminMessage = settings.find(s => s.key === 'Pesan Admin')?.value || "";
 
-            const StatCard = ({ title, value, icon, color }) => (
-                <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
-                            <h3 className="text-2xl font-bold text-gray-800">{value}</h3>
-                        </div>
-                        <div className={`p-3 rounded-lg ${color} bg-opacity-10`}>
-                            <div className={color.replace('bg-', 'text-')}>
-                                <Icon name={icon} size={24} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-
-            const DetailModal = ({ item, onClose }) => {
-                if (!item) return null;
-                return (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-                            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center z-10">
-                                <div>
-                                    <h2 className="text-xl font-bold text-gray-800">Detail Laporan</h2>
-                                    <p className="text-sm text-gray-500">ID: {item.id}</p>
-                                </div>
-                                <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition">
-                                    <Icon name="x" />
-                                </button>
-                            </div>
-                            
-                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div>
-                                    <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden mb-4 border">
-                                        <img src={item.fotoURL} className="w-full h-full object-cover" onError={(e) => {e.target.src='https://placehold.co/600x400?text=No+Image'}} />
-                                    </div>
-                                    <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border">
-                                        <span className="text-gray-600 font-medium">Status</span>
-                                        <StatusBadge status={item.status} />
-                                    </div>
-                                </div>
-                                <div className="space-y-6">
-                                    <div>
-                                        <h3 className="font-semibold text-gray-800 mb-2">Informasi</h3>
-                                        <div className="grid grid-cols-2 gap-4 text-sm bg-gray-50 p-4 rounded border">
-                                            <div>
-                                                <p className="text-xs text-gray-500">Nama Pelapor</p>
-                                                <p className="font-medium">{item.nama}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-gray-500">Alamat</p>
-                                                <p className="font-medium">{item.alamat}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-gray-500">Kerugian</p>
-                                                <p className="font-medium text-red-600">Rp {item.kerugianAset.toLocaleString('id-ID')}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-gray-500">RT/RW</p>
-                                                <p className="font-medium">{item.rt}/{item.rw}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="bg-white border rounded-lg p-4 shadow-sm">
-                                        <DamageBar label="Atap" value={item.atap} />
-                                        <DamageBar label="Dinding" value={item.dinding} />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="bg-gray-50 px-6 py-4 rounded-b-xl flex justify-end gap-3">
-                                <button onClick={onClose} className="px-4 py-2 border rounded-lg hover:bg-gray-100">Tutup</button>
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-
             return (
-                <div className="min-h-screen pb-10">
-                    {/* Top Admin Banner */}
+                <div className="min-h-screen pb-10 relative">
+                    {/* Toast Notification */}
+                    {toast && (
+                        <div className="fixed top-20 right-5 z-50 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg animate-bounce">
+                            {toast}
+                        </div>
+                    )}
+
+                    {/* Admin Banner */}
                     {adminMessage && (
-                        <div className="bg-yellow-500 text-white text-sm py-2 px-4 overflow-hidden relative">
+                        <div className="bg-yellow-500 text-white text-sm py-2 px-4 overflow-hidden">
                              <div className="marquee-container">
                                 <div className="marquee-content font-medium">
-                                    <span className="mx-4">📢 INFO PENTING: {adminMessage}</span>
-                                    <span className="mx-4">📢 INFO PENTING: {adminMessage}</span>
-                                    <span className="mx-4">📢 INFO PENTING: {adminMessage}</span>
+                                    <span className="mx-4">📢 INFO: {adminMessage}</span>
+                                    <span className="mx-4">📢 INFO: {adminMessage}</span>
                                 </div>
                             </div>
                         </div>
@@ -431,21 +457,25 @@
                                     </div>
                                     <div>
                                         <h1 className="text-xl font-bold text-gray-900 leading-tight">SiGap {kelurahan}</h1>
-                                        <p className="text-xs text-gray-500 hidden sm:block">Sistem Data Kerusakan & Rehab Rekon</p>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-gray-500">Role: <span className="font-semibold uppercase">{user.Role}</span></span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-6">
-                                    {/* User Profile */}
+                                <div className="flex items-center gap-4">
+                                    {/* Export All Button */}
+                                    <button 
+                                        onClick={exportAllData}
+                                        className="hidden md:flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 text-sm font-medium rounded-lg border border-green-200 hover:bg-green-100 transition"
+                                    >
+                                        <Icon name="file-spreadsheet" size={16}/> Unduh Laporan (.csv)
+                                    </button>
+
                                     <div className="hidden md:flex flex-col items-end">
                                         <span className="text-sm font-semibold text-gray-800">{user.NamaLengkap}</span>
-                                        <span className="text-xs text-gray-500 bg-gray-100 px-2 rounded-full">{user.Dinas} ({user.Role})</span>
+                                        <span className="text-xs text-gray-500">{user.Dinas}</span>
                                     </div>
-                                    
-                                    <button 
-                                        onClick={onLogout}
-                                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition"
-                                        title="Keluar"
-                                    >
+                                    <button onClick={onLogout} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition" title="Keluar">
                                         <Icon name="log-out" size={20} />
                                     </button>
                                 </div>
@@ -454,24 +484,33 @@
                     </header>
 
                     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                        {/* Stats Row */}
+                        {/* Stats */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                            <StatCard title="Total Laporan" value={loading ? "..." : stats.total} icon="file-text" color="bg-blue-500" />
-                            <StatCard title="Total Kerugian" value={loading ? "..." : `Rp ${(stats.totalLoss / 1000000).toFixed(0)} Jt`} icon="dollar-sign" color="bg-red-500" />
-                            <StatCard title="Butuh Verifikasi" value={loading ? "..." : stats.active} icon="clock" color="bg-yellow-500" />
+                            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                                <div className="flex justify-between">
+                                    <div><p className="text-gray-500 text-sm">Total Laporan</p><h3 className="text-2xl font-bold">{stats.total}</h3></div>
+                                    <div className="bg-blue-100 p-3 rounded-lg text-blue-600"><Icon name="file-text" size={24}/></div>
+                                </div>
+                            </div>
+                            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                                <div className="flex justify-between">
+                                    <div><p className="text-gray-500 text-sm">Total Kerugian</p><h3 className="text-2xl font-bold">Rp {(stats.totalLoss / 1000000).toFixed(0)} Jt</h3></div>
+                                    <div className="bg-red-100 p-3 rounded-lg text-red-600"><Icon name="dollar-sign" size={24}/></div>
+                                </div>
+                            </div>
+                            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                                <div className="flex justify-between">
+                                    <div><p className="text-gray-500 text-sm">Sudah Diverifikasi</p><h3 className="text-2xl font-bold">{stats.verified}</h3></div>
+                                    <div className="bg-green-100 p-3 rounded-lg text-green-600"><Icon name="check-circle" size={24}/></div>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Controls */}
                         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                             <div className="relative w-full md:w-96">
                                 <Icon name="search" size={18} className="absolute left-3 top-3 text-gray-400" />
-                                <input
-                                    type="text"
-                                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Cari data..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
+                                <input type="text" className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Cari data..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                             </div>
                             <div className="flex bg-white rounded-lg border p-1">
                                 <button onClick={() => setViewMode('grid')} className={`p-2 rounded ${viewMode === 'grid' ? 'bg-gray-100 text-blue-600' : 'text-gray-500'}`}><Icon name="layout-grid" size={20}/></button>
@@ -479,15 +518,10 @@
                             </div>
                         </div>
 
-                        {/* Data Content */}
-                        {loading ? (
-                            <div className="flex justify-center py-20"><div className="loader"></div></div>
-                        ) : filteredData.length === 0 ? (
-                            <div className="text-center py-20 bg-white rounded-xl border border-dashed">
-                                <Icon name="search-x" size={48} className="mx-auto text-gray-300 mb-2"/>
-                                <p className="text-gray-500">Data tidak ditemukan</p>
-                            </div>
-                        ) : viewMode === 'grid' ? (
+                        {/* Data Display */}
+                        {loading ? <div className="flex justify-center py-20"><div className="loader"></div></div> :
+                         filteredData.length === 0 ? <div className="text-center py-20 bg-white border rounded-xl"><Icon name="search-x" className="mx-auto text-gray-300 mb-2" size={48}/><p className="text-gray-500">Data tidak ditemukan</p></div> :
+                         viewMode === 'grid' ? 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {filteredData.map(item => (
                                     <div key={item.id} className="bg-white rounded-xl border hover:shadow-lg transition overflow-hidden group">
@@ -498,47 +532,156 @@
                                         <div className="p-5">
                                             <h3 className="font-bold text-gray-800 truncate">{item.nama}</h3>
                                             <p className="text-sm text-gray-500 mb-4">{item.alamat}</p>
-                                            <button onClick={() => setSelectedItem(item)} className="w-full py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100">Detail</button>
+                                            <div className="flex justify-between items-center border-t pt-4">
+                                                <button onClick={() => setSelectedItem(item)} className="text-blue-600 text-sm font-medium hover:underline">Lihat Detail</button>
+                                                {canEditDelete(item) && (
+                                                    <div className="flex gap-2">
+                                                        <button onClick={() => handleDelete(item.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded"><Icon name="trash-2" size={16}/></button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
                             </div>
-                        ) : (
+                        :
                             <div className="bg-white rounded-xl border overflow-x-auto">
                                 <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alamat</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kerugian</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
-                                        </tr>
-                                    </thead>
+                                    <thead className="bg-gray-50"><tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alamat</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kerugian</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                                    </tr></thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
                                         {filteredData.map(item => (
                                             <tr key={item.id} className="hover:bg-gray-50">
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.nama}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs">{item.alamat}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Rp {item.kerugianAset.toLocaleString('id-ID')}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap"><StatusBadge status={item.status} /></td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                                                    <button onClick={() => setSelectedItem(item)} className="text-blue-600 hover:text-blue-900">Lihat</button>
+                                                <td className="px-6 py-4 text-sm text-gray-500 truncate max-w-xs">{item.alamat}</td>
+                                                <td className="px-6 py-4 text-sm text-gray-500">Rp {item.kerugianAset.toLocaleString('id-ID')}</td>
+                                                <td className="px-6 py-4"><StatusBadge status={item.status} /></td>
+                                                <td className="px-6 py-4 text-right text-sm font-medium">
+                                                    <button onClick={() => setSelectedItem(item)} className="text-blue-600 hover:text-blue-900 mr-3">Detail</button>
+                                                    {canEditDelete(item) && (
+                                                        <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-900"><Icon name="trash-2" size={16}/></button>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             </div>
-                        )}
+                        }
                     </main>
 
-                    {selectedItem && <DetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />}
+                    {/* MODAL DETAIL */}
+                    {selectedItem && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                                <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center z-10">
+                                    <div>
+                                        <h2 className="text-xl font-bold text-gray-800">Detail Laporan</h2>
+                                        <p className="text-sm text-gray-500">ID: {selectedItem.id}</p>
+                                    </div>
+                                    <button onClick={() => setSelectedItem(null)} className="p-2 hover:bg-gray-100 rounded-full transition"><Icon name="x" /></button>
+                                </div>
+                                
+                                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div>
+                                        <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden mb-4 border">
+                                            <img src={selectedItem.fotoURL} className="w-full h-full object-cover" onError={(e) => {e.target.src='https://placehold.co/600x400?text=No+Image'}} />
+                                        </div>
+                                        <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border">
+                                            <span className="text-gray-600 font-medium">Status</span>
+                                            <StatusBadge status={selectedItem.status} />
+                                        </div>
+                                        
+                                        {/* ADMIN VERIFICATION CONTROL */}
+                                        {canVerify() && (
+                                            <div className="mt-4 p-4 border border-yellow-200 bg-yellow-50 rounded-lg">
+                                                <h4 className="font-semibold text-yellow-800 text-sm mb-2 flex items-center gap-2">
+                                                    <Icon name="shield" size={14}/> Admin Control
+                                                </h4>
+                                                <div className="flex gap-2">
+                                                    <button 
+                                                        onClick={() => handleUpdateStatus(selectedItem.id, "Terverifikasi")}
+                                                        className="flex-1 bg-green-600 text-white text-sm py-2 rounded hover:bg-green-700"
+                                                    >
+                                                        Verifikasi Data
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleUpdateStatus(selectedItem.id, "Ditolak")}
+                                                        className="flex-1 bg-red-600 text-white text-sm py-2 rounded hover:bg-red-700"
+                                                    >
+                                                        Tolak
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        <div>
+                                            <h3 className="font-semibold text-gray-800 mb-2">Informasi Warga</h3>
+                                            <div className="bg-gray-50 p-4 rounded border text-sm space-y-2">
+                                                <div className="flex justify-between border-b pb-2">
+                                                    <span className="text-gray-500">Nama</span>
+                                                    <span className="font-medium">{selectedItem.nama}</span>
+                                                </div>
+                                                <div className="flex justify-between border-b pb-2">
+                                                    <span className="text-gray-500">Alamat</span>
+                                                    <span className="font-medium text-right">{selectedItem.alamat}</span>
+                                                </div>
+                                                <div className="flex justify-between pt-2">
+                                                    <span className="text-gray-500">Kerugian Aset</span>
+                                                    <span className="font-bold text-red-600">Rp {selectedItem.kerugianAset.toLocaleString('id-ID')}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-white border rounded-lg p-4 shadow-sm">
+                                            <DamageBar label="Atap" value={selectedItem.atap} />
+                                            <DamageBar label="Dinding" value={selectedItem.dinding} />
+                                            <DamageBar label="Lantai" value={selectedItem.lantai} />
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-gray-50 px-6 py-4 rounded-b-xl flex justify-between items-center">
+                                    <div className="flex gap-2">
+                                        {canEditDelete(selectedItem) && (
+                                            <button 
+                                                onClick={() => handleDelete(selectedItem.id)}
+                                                className="px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 flex items-center gap-2"
+                                            >
+                                                <Icon name="trash-2" size={16}/> Hapus Data
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <button onClick={() => setSelectedItem(null)} className="px-4 py-2 border rounded-lg hover:bg-gray-100 text-sm">Tutup</button>
+                                        
+                                        {/* BUTTON DOWNLOAD PDF - HANYA MUNCUL JIKA TERVERIFIKASI */}
+                                        {selectedItem.status === "Terverifikasi" && (
+                                            <button 
+                                                onClick={() => generatePDF(selectedItem)}
+                                                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2"
+                                            >
+                                                <Icon name="file-text" size={16}/> Unduh PDF
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
 
-        // --- MAIN APP (AUTH MANAGER) ---
+        // --- MAIN APP ---
 
         function App() {
             const [user, setUser] = useState(null);
@@ -546,14 +689,9 @@
             const [loadingUser, setLoadingUser] = useState(false);
             const [loginError, setLoginError] = useState("");
             
-            // Check for existing session
             useEffect(() => {
                 const storedUser = localStorage.getItem('siGapUser');
-                if (storedUser) {
-                    setUser(JSON.parse(storedUser));
-                }
-                
-                // Fetch Settings Immediately regardless of login
+                if (storedUser) setUser(JSON.parse(storedUser));
                 fetchSettings();
             }, []);
 
@@ -563,15 +701,9 @@
                     return;
                 }
                 Papa.parse(CONFIG.SETTINGS_URL, {
-                    download: true,
-                    header: false, // Settings sheet usually just key-value without complex headers
+                    download: true, header: false,
                     complete: (results) => {
-                        // Assuming Column A is Key, Column B is Value
-                        // Skip row 1 if it is header
-                        const parsedSettings = results.data.slice(1).map(row => ({
-                            key: row[0],
-                            value: row[1]
-                        })).filter(s => s.key);
+                        const parsedSettings = results.data.slice(1).map(row => ({ key: row[0], value: row[1] })).filter(s => s.key);
                         setSettings(parsedSettings);
                     }
                 });
@@ -582,7 +714,6 @@
                 setLoginError("");
 
                 if (!CONFIG.USERS_URL) {
-                    // Use Mock Auth
                     setTimeout(() => {
                         const foundUser = MOCK_USERS.find(u => u.Email === email && u.Password === password);
                         if (foundUser) {
@@ -596,17 +727,11 @@
                     return;
                 }
 
-                // Real Auth via CSV
                 Papa.parse(CONFIG.USERS_URL, {
-                    download: true,
-                    header: true,
+                    download: true, header: true,
                     complete: (results) => {
                         const users = results.data;
-                        const foundUser = users.find(u => 
-                            u.Email?.trim() === email.trim() && 
-                            u.Password?.trim() === password.trim()
-                        );
-                        
+                        const foundUser = users.find(u => u.Email?.trim() === email.trim() && u.Password?.trim() === password.trim());
                         if (foundUser) {
                             setUser(foundUser);
                             localStorage.setItem('siGapUser', JSON.stringify(foundUser));
@@ -615,25 +740,16 @@
                         }
                         setLoadingUser(false);
                     },
-                    error: () => {
-                        setLoginError("Gagal menghubungi database user.");
-                        setLoadingUser(false);
-                    }
+                    error: () => { setLoginError("Gagal menghubungi database user."); setLoadingUser(false); }
                 });
             };
 
-            const handleLogout = () => {
-                setUser(null);
-                localStorage.removeItem('siGapUser');
-            };
+            const handleLogout = () => { setUser(null); localStorage.removeItem('siGapUser'); };
 
             return (
                 <div>
-                    {!user ? (
-                        <LoginPage onLogin={handleLogin} loading={loadingUser} error={loginError} />
-                    ) : (
-                        <Dashboard user={user} onLogout={handleLogout} settings={settings} />
-                    )}
+                    {!user ? <LoginPage onLogin={handleLogin} loading={loadingUser} error={loginError} /> : 
+                             <Dashboard user={user} onLogout={handleLogout} settings={settings} />}
                 </div>
             );
         }
