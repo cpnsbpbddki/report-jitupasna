@@ -551,8 +551,6 @@
                 doc.setFontSize(9);
                 doc.setTextColor(100);
                 doc.text(`Dicetak dari Sistem SiJITUPASNA pada: ${new Date().toLocaleString()}`, 20, finalY + 40);
-                doc.text(`Bidang Rehabilitasi dan Rekonstruksi - Subkelompok Penilaian Kerusakan`, 20, y);
-                doc.text(`BPBD Provinsi DKI Jakarta`, 20, y);
                 
                 doc.save(`SiJitupasna_${item.nama.replace(/\s+/g, '_')}.pdf`);
             };
