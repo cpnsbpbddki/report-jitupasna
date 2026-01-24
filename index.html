@@ -16,6 +16,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class', // Enable class-based dark mode
             theme: {
                 extend: {
                     colors: {
@@ -24,6 +25,12 @@
                             darkOrange: '#EA580C', // Orange-600
                             blue: '#1E40AF',   // Blue-800
                             lightBlue: '#3B82F6', // Blue-500
+                        },
+                        dark: {
+                            bg: '#0F172A',      // Slate-900
+                            card: '#1E293B',    // Slate-800
+                            text: '#F1F5F9',    // Slate-100
+                            border: '#334155'   // Slate-700
                         }
                     }
                 }
@@ -45,13 +52,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
         
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Dark Mode Scrollbar */
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
         
         /* Loading Animation */
         .loader {
@@ -62,6 +73,10 @@
             height: 24px;
             -webkit-animation: spin 1s linear infinite; /* Safari */
             animation: spin 1s linear infinite;
+        }
+        .dark .loader {
+            border-color: #334155;
+            border-top-color: #F97316;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -80,9 +95,12 @@
             background-color: #1E40AF;
             background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
         }
+        .dark .bg-pattern {
+            background-color: #0F172A; /* Darker blue for dark mode */
+        }
     </style>
 </head>
-<body>
+<body class="bg-gray-50 text-gray-900 dark:bg-dark-bg dark:text-dark-text transition-colors duration-300">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -115,10 +133,8 @@
 
         const parseDate = (dateStr) => {
             if (!dateStr) return new Date(0);
-            // Assuming format DD/MM/YYYY HH:mm:ss
             const parts = dateStr.split(/[\s/:]/);
             if (parts.length >= 3) {
-                // new Date(year, monthIndex, day, hours, minutes, seconds)
                 return new Date(parts[2], parts[1] - 1, parts[0], parts[3] || 0, parts[4] || 0, parts[5] || 0);
             }
             return new Date(0);
@@ -133,16 +149,29 @@
             return <i data-lucide={name} width={size} height={size} className={className}></i>;
         };
 
+        // Theme Toggle Component
+        const ThemeToggle = ({ isDark, toggleTheme }) => {
+            return (
+                <button 
+                    onClick={toggleTheme}
+                    className="p-2.5 rounded-xl transition-all bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-border dark:text-gray-300 dark:hover:bg-gray-700"
+                    title={isDark ? "Beralih ke Mode Terang" : "Beralih ke Mode Gelap"}
+                >
+                    {isDark ? <Icon name="sun" size={20} /> : <Icon name="moon" size={20} />}
+                </button>
+            );
+        };
+
         const StatusBadge = ({ status }) => {
             const safeStatus = (status || "").trim();
             const lowerStatus = safeStatus.toLowerCase();
             
-            let colorClass = 'bg-gray-100 text-gray-700 border-gray-200';
+            let colorClass = 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
             
-            if (lowerStatus === 'aktif' || lowerStatus === 'terverifikasi') colorClass = 'bg-green-100 text-green-700 border-green-200';
-            else if (lowerStatus === 'verifikasi' || lowerStatus === 'diproses') colorClass = 'bg-bpbd-orange/10 text-bpbd-darkOrange border-bpbd-orange/20';
-            else if (lowerStatus === 'selesai') colorClass = 'bg-blue-100 text-blue-700 border-blue-200';
-            else if (lowerStatus === 'ditolak') colorClass = 'bg-red-100 text-red-700 border-red-200';
+            if (lowerStatus === 'aktif' || lowerStatus === 'terverifikasi') colorClass = 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800';
+            else if (lowerStatus === 'verifikasi' || lowerStatus === 'diproses') colorClass = 'bg-bpbd-orange/10 text-bpbd-darkOrange border-bpbd-orange/20 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800';
+            else if (lowerStatus === 'selesai') colorClass = 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800';
+            else if (lowerStatus === 'ditolak') colorClass = 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800';
             
             return (
                 <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${colorClass} inline-flex items-center gap-1`}>
@@ -164,10 +193,10 @@
             return (
                 <div className="mb-3">
                     <div className="flex justify-between text-xs mb-1.5 font-medium">
-                        <span className="text-gray-600">{label}</span>
-                        <span className="text-gray-900">{valStr}</span>
+                        <span className="text-gray-600 dark:text-gray-400">{label}</span>
+                        <span className="text-gray-900 dark:text-gray-200">{valStr}</span>
                     </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2">
+                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
                         <div className={`h-2 rounded-full ${color} transition-all duration-500`} style={{ width: `${percent}%` }}></div>
                     </div>
                 </div>
@@ -175,7 +204,6 @@
         };
 
         // --- MOCK DATA ---
-        
         const MOCK_USERS = [
             { Email: "subkelpk@rehabrekon.com", Password: "admin123", Role: "admin", NamaLengkap: "Administrator", Dinas: "BPBD DKI JAKARTA", NoHP: "08123456789" },
             { Email: "test@gmail.com", Password: "test", Role: "user", NamaLengkap: "User Test", Dinas: "Kelurahan Test", NoHP: "08987654321" }
@@ -225,7 +253,7 @@
 
         // --- LOGIN PAGE ---
 
-        const LoginPage = ({ onLogin, loading, error }) => {
+        const LoginPage = ({ onLogin, loading, error, isDark }) => {
             const [email, setEmail] = useState("");
             const [password, setPassword] = useState("");
 
@@ -235,19 +263,19 @@
             };
 
             return (
-                <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 font-sans bg-pattern">
-                    <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
-                        <div className="bg-white p-8 pb-0 text-center">
-                            <div className="w-20 h-20 bg-bpbd-orange rounded-2xl rotate-3 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-200">
+                <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-bg px-4 font-sans bg-pattern transition-colors duration-300">
+                    <div className="max-w-md w-full bg-white dark:bg-dark-card rounded-2xl shadow-2xl overflow-hidden border border-gray-100 dark:border-dark-border">
+                        <div className="bg-white dark:bg-dark-card p-8 pb-0 text-center transition-colors duration-300">
+                            <div className="w-20 h-20 bg-bpbd-orange rounded-2xl rotate-3 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-200 dark:shadow-none">
                                 <Icon name="activity" size={40} className="text-white -rotate-3" />
                             </div>
-                            <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">SiJITUPASNA</h2>
-                            <p className="text-gray-500 text-sm mt-2 font-medium">Sistem Pengkajian Kebutuhan Pasca Bencana</p>
+                            <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">SiJITUPASNA</h2>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm mt-2 font-medium">Sistem Pengkajian Kebutuhan Pasca Bencana</p>
                         </div>
                         
                         <div className="p-8 pt-6">
                             {error && (
-                                <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm mb-6 flex items-start gap-3 border border-red-100 shadow-sm">
+                                <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-xl text-sm mb-6 flex items-start gap-3 border border-red-100 dark:border-red-900/30 shadow-sm">
                                     <Icon name="alert-triangle" size={18} className="mt-0.5 shrink-0" /> 
                                     <span>{error}</span>
                                 </div>
@@ -255,36 +283,36 @@
 
                             <form onSubmit={handleSubmit} className="space-y-5">
                                 <div className="space-y-1.5">
-                                    <label className="block text-sm font-semibold text-gray-700 ml-1">Email</label>
+                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 ml-1">Email</label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                            <Icon name="mail" size={18} className="text-gray-400" />
+                                            <Icon name="mail" size={18} className="text-gray-400 dark:text-gray-500" />
                                         </div>
                                         <input 
                                             type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                                            className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-bpbd-orange focus:border-bpbd-orange transition-all outline-none"
+                                            className="block w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-bpbd-orange focus:border-bpbd-orange dark:text-white transition-all outline-none"
                                             placeholder="nama@instansi.com"
                                         />
                                     </div>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="block text-sm font-semibold text-gray-700 ml-1">Password</label>
+                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 ml-1">Password</label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                            <Icon name="lock" size={18} className="text-gray-400" />
+                                            <Icon name="lock" size={18} className="text-gray-400 dark:text-gray-500" />
                                         </div>
                                         <input 
                                             type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
-                                            className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-bpbd-orange focus:border-bpbd-orange transition-all outline-none"
+                                            className="block w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-bpbd-orange focus:border-bpbd-orange dark:text-white transition-all outline-none"
                                             placeholder="••••••••"
                                         />
                                     </div>
                                 </div>
-                                <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-bpbd-orange to-bpbd-darkOrange hover:from-orange-600 hover:to-orange-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-orange-200 hover:shadow-orange-300 transform hover:-translate-y-0.5 active:translate-y-0">
+                                <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-bpbd-orange to-bpbd-darkOrange hover:from-orange-600 hover:to-orange-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-orange-200 dark:shadow-none hover:shadow-orange-300 transform hover:-translate-y-0.5 active:translate-y-0">
                                     {loading ? "Sedang Memproses..." : "Masuk Aplikasi"}
                                 </button>
                             </form>
-                            <div className="mt-8 pt-6 border-t border-gray-100 text-center text-xs text-gray-400">
+                            <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 text-center text-xs text-gray-400">
                                 <p className="font-medium">Demo Access:</p>
                                 <p className="mt-1">Admin: subkelpk@rehabrekon.com / admin123</p>
                                 <p>User: test@gmail.com / test</p>
@@ -297,12 +325,12 @@
 
         // --- DASHBOARD ---
 
-        const Dashboard = ({ user, onLogout, settings }) => {
+        const Dashboard = ({ user, onLogout, settings, isDark, toggleTheme }) => {
             const [data, setData] = useState([]);
             const [loading, setLoading] = useState(true);
             const [searchTerm, setSearchTerm] = useState("");
             const [viewMode, setViewMode] = useState("grid");
-            const [sortOption, setSortOption] = useState("newest"); // Default sort
+            const [sortOption, setSortOption] = useState("newest");
             const [selectedItem, setSelectedItem] = useState(null);
             const [toast, setToast] = useState(null);
 
@@ -357,7 +385,27 @@
 
             // Permission & Action Logic
             const canEditDelete = (item) => user && (user.Role === 'admin' || user.Email === item.email);
-            // Removed canVerify logic for UI removal
+            const canVerify = () => user && user.Role === 'admin';
+
+            const handleUpdateStatus = (itemId, newStatus) => {
+                const newData = data.map(item => item.id === itemId ? {...item, status: newStatus} : item);
+                setData(newData);
+                if (selectedItem && selectedItem.id === itemId) setSelectedItem({...selectedItem, status: newStatus});
+                showToast("Status berhasil diperbarui (Simulasi Lokal).");
+            };
+
+            const handleVerifyAll = () => {
+                if (window.confirm("Apakah Anda yakin ingin memverifikasi SEMUA data yang berstatus 'Verifikasi'?")) {
+                     const newData = data.map(item => {
+                        if ((item.status || "").toLowerCase().includes("verifikasi") && !(item.status || "").toLowerCase().includes("terverifikasi")) {
+                            return {...item, status: "Terverifikasi"};
+                        }
+                        return item;
+                     });
+                     setData(newData);
+                     showToast("Semua data berhasil diverifikasi (Simulasi Lokal).");
+                }
+            };
 
             const handleDelete = (itemId) => {
                 if (window.confirm("Yakin ingin menghapus data ini secara permanen?")) {
@@ -424,14 +472,14 @@
                 a.href = url; a.download = 'Laporan_Lengkap_SiJITUPASNA.csv'; a.click();
             };
 
-            // Enhanced PDF Generator with Layout Fix
+            // Enhanced PDF Generator
             const generatePDF = (item) => {
                 const doc = new jsPDF();
                 
-                // BPBD Header Style
-                doc.setFillColor(249, 115, 22); // Orange BPBD
+                // Header (Keep colors consistent for branding)
+                doc.setFillColor(249, 115, 22); 
                 doc.rect(0, 0, 210, 5, 'F');
-                doc.setFillColor(30, 64, 175); // Blue BPBD
+                doc.setFillColor(30, 64, 175); 
                 doc.rect(0, 5, 210, 40, 'F');
                 
                 doc.setTextColor(255, 255, 255);
@@ -446,16 +494,12 @@
                 doc.setFontSize(12);
                 let y = 60;
 
-                // Basic Info Header (Left Side)
                 doc.setFont("helvetica", "bold");
                 doc.text(`ID Laporan: ${item.id}`, 20, y);
                 doc.text(`Status: ${item.status}`, 20, y + 6);
                 
-                // Add Image (Right Side, Top) - NO Overlap with Table
-                // Position image at top right, separate from flow
                 if (item.fotoURL && !item.fotoURL.includes("placehold.co")) {
                     try {
-                        // x=140, y=55, w=50, h=35
                         doc.addImage(item.fotoURL, 'JPEG', 140, 55, 50, 35);
                     } catch (e) {
                         doc.setFontSize(8);
@@ -464,10 +508,8 @@
                     }
                 }
                 
-                // Move Y down below image area to start table safely
                 y = 100; 
 
-                // Detailed Data Table
                 const details = [
                     [{content: 'DATA PELAPOR', colSpan: 2, styles: {fillColor: [220, 220, 220], fontStyle: 'bold'}}],
                     ["Nama Lengkap", item.nama],
@@ -512,7 +554,6 @@
 
                 const finalY = doc.lastAutoTable.finalY + 20;
                 
-                // Signature Area
                 doc.setFontSize(10);
                 doc.setTextColor(0,0,0);
                 doc.text("Mengetahui,", 140, finalY);
@@ -535,31 +576,21 @@
 
             // Filtering & Sorting Logic
             const processedData = useMemo(() => {
-                // 1. Filter
                 let result = data.filter(item => 
                     (item.nama || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
                     (item.alamat || "").toLowerCase().includes(searchTerm.toLowerCase())
                 );
 
-                // 2. Sort
                 result.sort((a, b) => {
                     switch(sortOption) {
-                        case 'newest':
-                            return parseDate(b.timestamp) - parseDate(a.timestamp);
-                        case 'oldest':
-                            return parseDate(a.timestamp) - parseDate(b.timestamp);
-                        case 'loss_high':
-                            return b.kerugianAset - a.kerugianAset;
-                        case 'loss_low':
-                            return a.kerugianAset - b.kerugianAset;
-                        case 'area_high':
-                            return b.luasBangunan - a.luasBangunan;
-                        case 'area_low':
-                            return a.luasBangunan - b.luasBangunan;
-                        case 'user_asc':
-                            return a.email.localeCompare(b.email);
-                        default:
-                            return 0;
+                        case 'newest': return parseDate(b.timestamp) - parseDate(a.timestamp);
+                        case 'oldest': return parseDate(a.timestamp) - parseDate(b.timestamp);
+                        case 'loss_high': return b.kerugianAset - a.kerugianAset;
+                        case 'loss_low': return a.kerugianAset - b.kerugianAset;
+                        case 'area_high': return b.luasBangunan - a.luasBangunan;
+                        case 'area_low': return a.luasBangunan - b.luasBangunan;
+                        case 'user_asc': return a.email.localeCompare(b.email);
+                        default: return 0;
                     }
                 });
 
@@ -570,9 +601,9 @@
             const adminMessage = settings.find(s => s.key === 'Pesan Admin')?.value || "";
 
             return (
-                <div className="min-h-screen pb-10 relative bg-slate-50">
+                <div className="min-h-screen pb-10 relative bg-slate-50 dark:bg-dark-bg transition-colors duration-300">
                     {toast && (
-                        <div className="fixed top-24 right-5 z-50 bg-gray-900 text-white px-6 py-4 rounded-xl shadow-2xl animate-bounce flex items-center gap-3">
+                        <div className="fixed top-24 right-5 z-50 bg-gray-900 dark:bg-gray-800 text-white px-6 py-4 rounded-xl shadow-2xl animate-bounce flex items-center gap-3">
                             <Icon name="check-circle" size={20} className="text-green-400" />
                             {toast}
                         </div>
@@ -591,35 +622,46 @@
                     )}
 
                     {/* Navbar */}
-                    <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm backdrop-blur-md bg-white/90">
+                    <header className="bg-white dark:bg-dark-card border-b border-gray-200 dark:border-dark-border sticky top-0 z-30 shadow-sm backdrop-blur-md bg-white/90 dark:bg-dark-card/90 transition-colors duration-300">
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                             <div className="flex justify-between h-20 items-center">
                                 <div className="flex items-center gap-4">
-                                    <div className="bg-gradient-to-br from-bpbd-orange to-red-600 text-white p-2.5 rounded-xl shadow-lg shadow-orange-100">
+                                    <div className="bg-gradient-to-br from-bpbd-orange to-red-600 text-white p-2.5 rounded-xl shadow-lg shadow-orange-100 dark:shadow-none">
                                         <Icon name="activity" size={26} />
                                     </div>
                                     <div>
-                                        <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight leading-none">SiJITUPASNA</h1>
+                                        <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-none">SiJITUPASNA</h1>
                                         <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-xs font-semibold px-2 py-0.5 bg-blue-50 text-bpbd-blue rounded border border-blue-100 uppercase tracking-wide">
+                                            <span className="text-xs font-semibold px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-bpbd-blue dark:text-blue-300 rounded border border-blue-100 dark:border-blue-800 uppercase tracking-wide">
                                                 {kelurahan}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4 md:gap-6">
+                                    {canVerify() && (
+                                        <button 
+                                            onClick={handleVerifyAll}
+                                            className="hidden md:flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg border border-blue-700 hover:bg-blue-700 hover:border-blue-800 transition-all shadow-sm"
+                                        >
+                                            <Icon name="check-square" size={18}/> Verifikasi Semua
+                                        </button>
+                                    )}
+
                                     <button 
                                         onClick={exportAllData}
-                                        className="hidden md:flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 text-sm font-semibold rounded-lg border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 transition-all shadow-sm"
+                                        className="hidden md:flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-sm font-semibold rounded-lg border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 hover:border-emerald-300 transition-all shadow-sm"
                                     >
                                         <Icon name="file-spreadsheet" size={18}/> Export Excel
                                     </button>
 
-                                    <div className="hidden md:flex flex-col items-end border-r pr-6 border-gray-200">
-                                        <span className="text-sm font-bold text-gray-800">{user.NamaLengkap}</span>
-                                        <span className="text-xs text-gray-500 font-medium">{user.Dinas} • <span className="text-bpbd-orange uppercase">{user.Role}</span></span>
+                                    <ThemeToggle isDark={isDark} toggleTheme={toggleTheme} />
+
+                                    <div className="hidden md:flex flex-col items-end border-r pr-6 border-gray-200 dark:border-gray-700">
+                                        <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{user.NamaLengkap}</span>
+                                        <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{user.Dinas} • <span className="text-bpbd-orange uppercase">{user.Role}</span></span>
                                     </div>
-                                    <button onClick={onLogout} className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Keluar">
+                                    <button onClick={onLogout} className="p-2.5 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all" title="Keluar">
                                         <Icon name="log-out" size={22} />
                                     </button>
                                 </div>
@@ -630,38 +672,38 @@
                     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                         {/* Summary Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 group relative overflow-hidden">
+                            <div className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-gray-100 dark:border-dark-border shadow-sm hover:shadow-lg transition-all duration-300 group relative overflow-hidden">
                                 <div className="absolute right-0 top-0 h-full w-1 bg-bpbd-blue opacity-0 group-hover:opacity-100 transition-all"></div>
                                 <div className="flex justify-between items-start">
                                     <div>
-                                        <p className="text-gray-500 text-sm font-medium mb-1">Total Laporan Masuk</p>
-                                        <h3 className="text-3xl font-bold text-gray-800 tracking-tight">{stats.total}</h3>
+                                        <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Total Laporan Masuk</p>
+                                        <h3 className="text-3xl font-bold text-gray-800 dark:text-white tracking-tight">{stats.total}</h3>
                                     </div>
-                                    <div className="bg-blue-50 p-3 rounded-xl text-bpbd-blue group-hover:scale-110 transition-transform">
+                                    <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-xl text-bpbd-blue dark:text-blue-300 group-hover:scale-110 transition-transform">
                                         <Icon name="files" size={24}/>
                                     </div>
                                 </div>
                             </div>
-                            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 group relative overflow-hidden">
+                            <div className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-gray-100 dark:border-dark-border shadow-sm hover:shadow-lg transition-all duration-300 group relative overflow-hidden">
                                 <div className="absolute right-0 top-0 h-full w-1 bg-red-500 opacity-0 group-hover:opacity-100 transition-all"></div>
                                 <div className="flex justify-between items-start">
                                     <div>
-                                        <p className="text-gray-500 text-sm font-medium mb-1">Estimasi Kerugian</p>
-                                        <h3 className="text-3xl font-bold text-gray-800 tracking-tight">Rp {(stats.totalLoss / 1000000).toFixed(0)} Jt</h3>
+                                        <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Estimasi Kerugian</p>
+                                        <h3 className="text-3xl font-bold text-gray-800 dark:text-white tracking-tight">Rp {(stats.totalLoss / 1000000).toFixed(0)} Jt</h3>
                                     </div>
-                                    <div className="bg-red-50 p-3 rounded-xl text-red-600 group-hover:scale-110 transition-transform">
+                                    <div className="bg-red-50 dark:bg-red-900/30 p-3 rounded-xl text-red-600 dark:text-red-400 group-hover:scale-110 transition-transform">
                                         <Icon name="trending-down" size={24}/>
                                     </div>
                                 </div>
                             </div>
-                            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 group relative overflow-hidden">
+                            <div className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-gray-100 dark:border-dark-border shadow-sm hover:shadow-lg transition-all duration-300 group relative overflow-hidden">
                                 <div className="absolute right-0 top-0 h-full w-1 bg-green-500 opacity-0 group-hover:opacity-100 transition-all"></div>
                                 <div className="flex justify-between items-start">
                                     <div>
-                                        <p className="text-gray-500 text-sm font-medium mb-1">Data Terverifikasi</p>
-                                        <h3 className="text-3xl font-bold text-gray-800 tracking-tight">{stats.verified}</h3>
+                                        <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Data Terverifikasi</p>
+                                        <h3 className="text-3xl font-bold text-gray-800 dark:text-white tracking-tight">{stats.verified}</h3>
                                     </div>
-                                    <div className="bg-green-50 p-3 rounded-xl text-green-600 group-hover:scale-110 transition-transform">
+                                    <div className="bg-green-50 dark:bg-green-900/30 p-3 rounded-xl text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform">
                                         <Icon name="shield-check" size={24}/>
                                     </div>
                                 </div>
@@ -669,19 +711,19 @@
                         </div>
 
                         {/* Filter & View Controls */}
-                        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white p-3 rounded-2xl border border-gray-200 shadow-sm sticky top-24 z-20">
+                        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white dark:bg-dark-card p-3 rounded-2xl border border-gray-200 dark:border-dark-border shadow-sm sticky top-24 z-20 transition-colors duration-300">
                             <div className="flex flex-1 gap-4 w-full">
                                 <div className="relative flex-1">
-                                    <Icon name="search" size={18} className="absolute left-4 top-3.5 text-gray-400" />
-                                    <input type="text" className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-bpbd-orange focus:border-bpbd-orange transition-all" placeholder="Cari nama warga, alamat..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                                    <Icon name="search" size={18} className="absolute left-4 top-3.5 text-gray-400 dark:text-gray-500" />
+                                    <input type="text" className="block w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-bpbd-orange focus:border-bpbd-orange dark:text-white transition-all placeholder-gray-400 dark:placeholder-gray-500" placeholder="Cari nama warga, alamat..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                                 </div>
                                 
                                 <div className="relative w-48 hidden md:block">
-                                    <Icon name="arrow-up-down" size={16} className="absolute left-3 top-3.5 text-gray-500" />
+                                    <Icon name="arrow-up-down" size={16} className="absolute left-3 top-3.5 text-gray-500 dark:text-gray-400" />
                                     <select 
                                         value={sortOption} 
                                         onChange={(e) => setSortOption(e.target.value)}
-                                        className="block w-full pl-9 pr-8 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-bpbd-orange focus:border-bpbd-orange appearance-none text-sm font-medium text-gray-700 cursor-pointer"
+                                        className="block w-full pl-9 pr-8 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-bpbd-orange focus:border-bpbd-orange appearance-none text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
                                     >
                                         <option value="newest">Waktu Terbaru</option>
                                         <option value="oldest">Waktu Terlama</option>
@@ -692,25 +734,25 @@
                                         <option value="user_asc">User Inputter (A-Z)</option>
                                     </select>
                                     <div className="absolute right-3 top-4 pointer-events-none">
-                                        <Icon name="chevron-down" size={14} className="text-gray-500" />
+                                        <Icon name="chevron-down" size={14} className="text-gray-500 dark:text-gray-400" />
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
-                                <button onClick={() => setViewMode('grid')} className={`p-2.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white text-bpbd-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}><Icon name="layout-grid" size={18}/></button>
-                                <button onClick={() => setViewMode('table')} className={`p-2.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white text-bpbd-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}><Icon name="table" size={18}/></button>
+                            <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1">
+                                <button onClick={() => setViewMode('grid')} className={`p-2.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-gray-700 text-bpbd-blue dark:text-blue-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}><Icon name="layout-grid" size={18}/></button>
+                                <button onClick={() => setViewMode('table')} className={`p-2.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white dark:bg-gray-700 text-bpbd-blue dark:text-blue-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}><Icon name="table" size={18}/></button>
                             </div>
                         </div>
 
                         {/* Content Grid/Table */}
-                        {loading ? <div className="flex flex-col items-center justify-center py-24"><div className="loader mb-4"></div><p className="text-gray-500 font-medium">Sinkronisasi data...</p></div> :
-                         processedData.length === 0 ? <div className="text-center py-24 bg-white border border-dashed border-gray-300 rounded-3xl"><Icon name="search-x" className="mx-auto text-gray-300 mb-4" size={64}/><h3 className="text-lg font-bold text-gray-800">Data Tidak Ditemukan</h3><p className="text-gray-500">Coba kata kunci pencarian yang lain.</p></div> :
+                        {loading ? <div className="flex flex-col items-center justify-center py-24"><div className="loader mb-4"></div><p className="text-gray-500 dark:text-gray-400 font-medium">Sinkronisasi data...</p></div> :
+                         processedData.length === 0 ? <div className="text-center py-24 bg-white dark:bg-dark-card border border-dashed border-gray-300 dark:border-gray-700 rounded-3xl"><Icon name="search-x" className="mx-auto text-gray-300 dark:text-gray-600 mb-4" size={64}/><h3 className="text-lg font-bold text-gray-800 dark:text-white">Data Tidak Ditemukan</h3><p className="text-gray-500 dark:text-gray-400">Coba kata kunci pencarian yang lain.</p></div> :
                          viewMode === 'grid' ? 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {processedData.map(item => (
-                                    <div key={item.id} className="bg-white rounded-2xl border border-gray-200 hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300 overflow-hidden flex flex-col group h-full">
-                                        <div className="h-56 bg-gray-100 relative overflow-hidden">
+                                    <div key={item.id} className="bg-white dark:bg-dark-card rounded-2xl border border-gray-200 dark:border-dark-border hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-gray-900/50 transition-all duration-300 overflow-hidden flex flex-col group h-full">
+                                        <div className="h-56 bg-gray-100 dark:bg-gray-800 relative overflow-hidden">
                                             <img src={item.fotoURL} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" onError={(e) => {e.target.src='https://placehold.co/600x400?text=No+Image'}} />
                                             <div className="absolute top-4 right-4 shadow-sm"><StatusBadge status={item.status} /></div>
                                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-5 pt-12">
@@ -719,26 +761,26 @@
                                         </div>
                                         <div className="p-6 flex-1 flex flex-col">
                                             <div className="mb-4">
-                                                <h3 className="font-bold text-gray-900 text-lg truncate mb-1">{item.nama}</h3>
-                                                <p className="text-sm text-gray-500">Aset: <span className="font-medium text-gray-700">{item.jenisBangunan}</span></p>
+                                                <h3 className="font-bold text-gray-900 dark:text-white text-lg truncate mb-1">{item.nama}</h3>
+                                                <p className="text-sm text-gray-500 dark:text-gray-400">Aset: <span className="font-medium text-gray-700 dark:text-gray-300">{item.jenisBangunan}</span></p>
                                             </div>
                                             
-                                            <div className="space-y-3 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                            <div className="space-y-3 mb-6 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700">
                                                 <div className="flex justify-between text-sm">
-                                                    <span className="text-gray-500">Total Kerugian</span>
-                                                    <span className="font-bold text-red-600">Rp {(item.kerugianAset/1000000).toFixed(1)} Jt</span>
+                                                    <span className="text-gray-500 dark:text-gray-400">Total Kerugian</span>
+                                                    <span className="font-bold text-red-600 dark:text-red-400">Rp {(item.kerugianAset/1000000).toFixed(1)} Jt</span>
                                                 </div>
-                                                <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
                                                     <div className="bg-red-500 h-1.5 rounded-full" style={{width: '65%'}}></div>
                                                 </div>
                                             </div>
 
-                                            <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center">
-                                                <button onClick={() => setSelectedItem(item)} className="text-bpbd-blue text-sm font-bold hover:text-blue-800 flex items-center gap-1 group/btn">
+                                            <div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                                                <button onClick={() => setSelectedItem(item)} className="text-bpbd-blue dark:text-blue-400 text-sm font-bold hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1 group/btn">
                                                     Lihat Detail <Icon name="arrow-right" size={16} className="transition-transform group-hover/btn:translate-x-1"/>
                                                 </button>
                                                 {canEditDelete(item) && (
-                                                    <button onClick={() => handleDelete(item.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Icon name="trash-2" size={18}/></button>
+                                                    <button onClick={() => handleDelete(item.id)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"><Icon name="trash-2" size={18}/></button>
                                                 )}
                                             </div>
                                         </div>
@@ -746,34 +788,34 @@
                                 ))}
                             </div>
                         :
-                            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                            <div className="bg-white dark:bg-dark-card rounded-2xl border border-gray-200 dark:border-dark-border shadow-sm overflow-hidden">
                                 <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50"><tr>
-                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Identitas</th>
-                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Lokasi & Aset</th>
-                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nilai Kerugian</th>
-                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                                            <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Aksi</th>
+                                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                        <thead className="bg-gray-50 dark:bg-gray-800"><tr>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Identitas</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Lokasi & Aset</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nilai Kerugian</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                                            <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Aksi</th>
                                         </tr></thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
+                                        <tbody className="bg-white dark:bg-dark-card divide-y divide-gray-200 dark:divide-gray-700">
                                             {processedData.map(item => (
-                                                <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
+                                                <tr key={item.id} className="hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors">
                                                     <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="font-bold text-gray-900">{item.nama}</div>
-                                                        <div className="text-xs text-gray-500 mt-0.5">{item.email}</div>
+                                                        <div className="font-bold text-gray-900 dark:text-white">{item.nama}</div>
+                                                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.email}</div>
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <div className="text-sm text-gray-900 truncate max-w-xs font-medium">{item.alamat}</div>
-                                                        <div className="text-xs text-gray-500 mt-0.5">RT {item.rt} / RW {item.rw}</div>
+                                                        <div className="text-sm text-gray-900 dark:text-gray-300 truncate max-w-xs font-medium">{item.alamat}</div>
+                                                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">RT {item.rt} / RW {item.rw}</div>
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-red-600">Rp {item.kerugianAset.toLocaleString('id-ID')}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-red-600 dark:text-red-400">Rp {item.kerugianAset.toLocaleString('id-ID')}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap"><StatusBadge status={item.status} /></td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                         <div className="flex items-center justify-end gap-3">
-                                                            <button onClick={() => setSelectedItem(item)} className="text-bpbd-blue hover:text-blue-900 font-bold">Detail</button>
+                                                            <button onClick={() => setSelectedItem(item)} className="text-bpbd-blue dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 font-bold">Detail</button>
                                                             {canEditDelete(item) && (
-                                                                <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-600"><Icon name="trash-2" size={18}/></button>
+                                                                <button onClick={() => handleDelete(item.id)} className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400"><Icon name="trash-2" size={18}/></button>
                                                             )}
                                                         </div>
                                                     </td>
@@ -789,64 +831,86 @@
                     {/* MODAL DETAIL */}
                     {selectedItem && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-fade-in">
-                            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
-                                <div className="bg-white border-b border-gray-100 px-8 py-5 flex justify-between items-center sticky top-0 z-10">
+                            <div className="bg-white dark:bg-dark-card rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col border border-gray-200 dark:border-dark-border">
+                                <div className="bg-white dark:bg-dark-card border-b border-gray-100 dark:border-dark-border px-8 py-5 flex justify-between items-center sticky top-0 z-10">
                                     <div>
-                                        <h2 className="text-2xl font-bold text-gray-800">Detail Laporan</h2>
-                                        <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">ID: <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">{selectedItem.id}</span></p>
+                                        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Detail Laporan</h2>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-2">ID: <span className="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-600 dark:text-gray-300">{selectedItem.id}</span></p>
                                     </div>
-                                    <button onClick={() => setSelectedItem(null)} className="p-2 hover:bg-gray-100 rounded-full transition"><Icon name="x" size={24} className="text-gray-500"/></button>
+                                    <button onClick={() => setSelectedItem(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"><Icon name="x" size={24} className="text-gray-500 dark:text-gray-400"/></button>
                                 </div>
                                 
-                                <div className="overflow-y-auto p-8 bg-gray-50/50">
+                                <div className="overflow-y-auto p-8 bg-gray-50/50 dark:bg-gray-900/50">
                                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                                         {/* Left Column: Visual & Status */}
                                         <div className="lg:col-span-5 space-y-6">
-                                            <div className="bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
-                                                <div className="aspect-video bg-gray-200 rounded-xl overflow-hidden relative">
+                                            <div className="bg-white dark:bg-gray-800 p-2 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                                                <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-xl overflow-hidden relative">
                                                     <img src={selectedItem.fotoURL} className="w-full h-full object-cover" onError={(e) => {e.target.src='https://placehold.co/600x400?text=No+Image'}} />
                                                     <div className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded backdrop-blur-sm">Bukti Kerusakan</div>
                                                 </div>
                                             </div>
                                             
-                                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Status Pengajuan</h4>
+                                            <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                                                <h4 className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4">Status Pengajuan</h4>
                                                 <div className="flex justify-between items-center mb-6">
                                                     <StatusBadge status={selectedItem.status} />
-                                                    <span className="text-xs text-gray-400">{selectedItem.timestamp.split(' ')[0]}</span>
+                                                    <span className="text-xs text-gray-400 dark:text-gray-500">{selectedItem.timestamp.split(' ')[0]}</span>
                                                 </div>
+                                                
+                                                {canVerify() && (
+                                                    <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-xl border border-orange-100 dark:border-orange-800/50">
+                                                        <h4 className="font-bold text-orange-800 dark:text-orange-400 text-sm mb-3 flex items-center gap-2">
+                                                            <Icon name="shield-alert" size={16}/> Verifikasi Admin
+                                                        </h4>
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <button 
+                                                                onClick={() => handleUpdateStatus(selectedItem.id, "Terverifikasi")}
+                                                                className="flex items-center justify-center gap-2 bg-green-600 dark:bg-green-700 text-white text-sm font-bold py-2.5 rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition shadow-sm hover:shadow-green-200 dark:hover:shadow-none"
+                                                            >
+                                                                <Icon name="check" size={16}/> Setujui
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleUpdateStatus(selectedItem.id, "Ditolak")}
+                                                                className="flex items-center justify-center gap-2 bg-red-600 dark:bg-red-700 text-white text-sm font-bold py-2.5 rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition shadow-sm hover:shadow-red-200 dark:hover:shadow-none"
+                                                            >
+                                                                <Icon name="x" size={16}/> Tolak
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
                                         {/* Right Column: Data */}
                                         <div className="lg:col-span-7 space-y-6">
-                                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                                                <h3 className="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
-                                                    <Icon name="user" size={20} className="text-bpbd-blue"/> Informasi Pemilik
+                                            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                                                <h3 className="font-bold text-gray-900 dark:text-white text-lg mb-4 flex items-center gap-2">
+                                                    <Icon name="user" size={20} className="text-bpbd-blue dark:text-blue-400"/> Informasi Pemilik
                                                 </h3>
-                                                <div className="grid grid-cols-2 gap-y-4 gap-x-8">
-                                                    <div><p className="text-xs text-gray-500 mb-1">Nama Lengkap</p><p className="font-medium text-gray-900">{selectedItem.nama}</p></div>
-                                                    <div><p className="text-xs text-gray-500 mb-1">Pekerjaan</p><p className="font-medium text-gray-900">{selectedItem.pekerjaan}</p></div>
-                                                    <div className="col-span-2 border-t border-dashed my-1 pt-2">
-                                                        <p className="text-xs text-gray-500 mb-1">Alamat Lengkap</p>
-                                                        <p className="font-medium text-gray-900">{selectedItem.alamat}</p>
-                                                        <p className="text-sm text-gray-500 mt-1">RT {selectedItem.rt} / RW {selectedItem.rw}</p>
+                                                <div className="grid grid-cols-2 gap-y-4 gap-x-8 text-gray-900 dark:text-gray-200">
+                                                    <div><p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Nama Lengkap</p><p className="font-medium">{selectedItem.nama}</p></div>
+                                                    <div><p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Pekerjaan</p><p className="font-medium">{selectedItem.pekerjaan}</p></div>
+                                                    <div className="col-span-2 border-t border-dashed border-gray-200 dark:border-gray-700 my-1 pt-2">
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Alamat Lengkap</p>
+                                                        <p className="font-medium">{selectedItem.alamat}</p>
+                                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">RT {selectedItem.rt} / RW {selectedItem.rw}</p>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                                                <h3 className="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
+                                            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                                                <h3 className="font-bold text-gray-900 dark:text-white text-lg mb-4 flex items-center gap-2">
                                                     <Icon name="bar-chart-2" size={20} className="text-bpbd-orange"/> Analisa Kerusakan
                                                 </h3>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                                        <p className="text-xs text-gray-500 mb-1">Estimasi Kerugian</p>
-                                                        <p className="text-xl font-extrabold text-red-600">Rp {selectedItem.kerugianAset.toLocaleString('id-ID')}</p>
+                                                    <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-100 dark:border-gray-600">
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Estimasi Kerugian</p>
+                                                        <p className="text-xl font-extrabold text-red-600 dark:text-red-400">Rp {selectedItem.kerugianAset.toLocaleString('id-ID')}</p>
                                                     </div>
-                                                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                                        <p className="text-xs text-gray-500 mb-1">Jenis Aset</p>
-                                                        <p className="text-lg font-bold text-gray-800">{selectedItem.jenisBangunan}</p>
+                                                    <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-100 dark:border-gray-600">
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Jenis Aset</p>
+                                                        <p className="text-lg font-bold text-gray-800 dark:text-gray-200">{selectedItem.jenisBangunan}</p>
                                                     </div>
                                                 </div>
                                                 <div className="space-y-1">
@@ -860,18 +924,18 @@
                                     </div>
                                 </div>
                                 
-                                <div className="bg-white border-t border-gray-200 px-8 py-5 flex justify-between items-center">
+                                <div className="bg-white dark:bg-dark-card border-t border-gray-200 dark:border-gray-700 px-8 py-5 flex justify-between items-center">
                                     {canEditDelete(selectedItem) ? (
-                                        <button onClick={() => handleDelete(selectedItem.id)} className="text-red-600 font-medium hover:underline text-sm flex items-center gap-2"><Icon name="trash-2" size={16}/> Hapus Data</button>
+                                        <button onClick={() => handleDelete(selectedItem.id)} className="text-red-600 dark:text-red-400 font-medium hover:underline text-sm flex items-center gap-2"><Icon name="trash-2" size={16}/> Hapus Data</button>
                                     ) : <div></div>}
 
                                     <div className="flex gap-4">
-                                        <button onClick={() => setSelectedItem(null)} className="px-6 py-2.5 border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition">Tutup</button>
+                                        <button onClick={() => setSelectedItem(null)} className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition">Tutup</button>
                                         
                                         {selectedItem.status === "Terverifikasi" && (
                                             <button 
                                                 onClick={() => generatePDF(selectedItem)}
-                                                className="px-6 py-2.5 bg-bpbd-blue text-white font-bold rounded-xl hover:bg-blue-900 transition flex items-center gap-2 shadow-lg shadow-blue-200"
+                                                className="px-6 py-2.5 bg-bpbd-blue text-white font-bold rounded-xl hover:bg-blue-900 transition flex items-center gap-2 shadow-lg shadow-blue-200 dark:shadow-none"
                                             >
                                                 <Icon name="printer" size={18}/> Cetak PDF Lengkap
                                             </button>
@@ -892,12 +956,38 @@
             const [settings, setSettings] = useState([]);
             const [loadingUser, setLoadingUser] = useState(false);
             const [loginError, setLoginError] = useState("");
+            const [isDark, setIsDark] = useState(false);
             
+            // Initial Load: User & Theme
             useEffect(() => {
+                // Load User
                 const storedUser = localStorage.getItem('siGapUser');
                 if (storedUser) setUser(JSON.parse(storedUser));
+                
+                // Load Theme
+                const storedTheme = localStorage.getItem('theme');
+                if (storedTheme === 'dark') {
+                    setIsDark(true);
+                    document.documentElement.classList.add('dark');
+                } else {
+                    setIsDark(false);
+                    document.documentElement.classList.remove('dark');
+                }
+
                 fetchSettings();
             }, []);
+
+            const toggleTheme = () => {
+                const newTheme = !isDark;
+                setIsDark(newTheme);
+                if (newTheme) {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('theme', 'light');
+                }
+            };
 
             const fetchSettings = () => {
                 if (!CONFIG.SETTINGS_URL) {
@@ -952,8 +1042,8 @@
 
             return (
                 <div>
-                    {!user ? <LoginPage onLogin={handleLogin} loading={loadingUser} error={loginError} /> : 
-                             <Dashboard user={user} onLogout={handleLogout} settings={settings} />}
+                    {!user ? <LoginPage onLogin={handleLogin} loading={loadingUser} error={loginError} isDark={isDark} /> : 
+                             <Dashboard user={user} onLogout={handleLogout} settings={settings} isDark={isDark} toggleTheme={toggleTheme} />}
                 </div>
             );
         }
