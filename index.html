@@ -91,9 +91,9 @@
 
         // --- KONFIGURASI LINK SPREADSHEET ---
         const CONFIG = {
-            DATA_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSingzjvkI_INEqsjcOD2vYX5yZNOn8fikomTNU70munYuxBmjywDRrWNq0ehZTHN2OHSvVZE-xOKgN/pub?gid=1554825227&single=true&output=csv",
-            USERS_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSingzjvkI_INEqsjcOD2vYX5yZNOn8fikomTNU70munYuxBmjywDRrWNq0ehZTHN2OHSvVZE-xOKgN/pub?gid=0&single=true&output=csv", 
-            SETTINGS_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSingzjvkI_INEqsjcOD2vYX5yZNOn8fikomTNU70munYuxBmjywDRrWNq0ehZTHN2OHSvVZE-xOKgN/pub?gid=762390479&single=true&output=csv"
+            DATA_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6y7q4z3F1f1r2x3g4h5i6j7k8l9m0n1o2p3q4r5s6t7u8v9w0x1y2z3a4b5c6d7e8f9g0h1i2j3k4/pub?output=csv",
+            USERS_URL: "", 
+            SETTINGS_URL: ""
         };
 
         // --- HELPER FUNCTIONS ---
@@ -111,6 +111,17 @@
                 console.error("Error parsing image URL", e);
                 return url;
             }
+        };
+
+        const parseDate = (dateStr) => {
+            if (!dateStr) return new Date(0);
+            // Assuming format DD/MM/YYYY HH:mm:ss
+            const parts = dateStr.split(/[\s/:]/);
+            if (parts.length >= 3) {
+                // new Date(year, monthIndex, day, hours, minutes, seconds)
+                return new Date(parts[2], parts[1] - 1, parts[0], parts[3] || 0, parts[4] || 0, parts[5] || 0);
+            }
+            return new Date(0);
         };
 
         // --- COMPONENTS ---
@@ -274,9 +285,9 @@
                                 </button>
                             </form>
                             <div className="mt-8 pt-6 border-t border-gray-100 text-center text-xs text-gray-400">
-                                <p className="font-semibold">Gunakan User E-FORM JITUPASNA untuk Login</p>
-                                <p><a href="https://cpnsbpbddki.github.io/jitupasna/" target="_blank">Dapatkan User Anda Disini!</a></p>
-                                <p>Demo: test@gmail.com / test</p>
+                                <p className="font-medium">Demo Access:</p>
+                                <p className="mt-1">Admin: subkelpk@rehabrekon.com / admin123</p>
+                                <p>User: test@gmail.com / test</p>
                             </div>
                         </div>
                     </div>
@@ -291,6 +302,7 @@
             const [loading, setLoading] = useState(true);
             const [searchTerm, setSearchTerm] = useState("");
             const [viewMode, setViewMode] = useState("grid");
+            const [sortOption, setSortOption] = useState("newest"); // Default sort
             const [selectedItem, setSelectedItem] = useState(null);
             const [toast, setToast] = useState(null);
 
@@ -314,7 +326,7 @@
                                 nama: row.Nama || "Tanpa Nama",
                                 alamat: row.Alamat || "",
                                 rt: row.RT || "-", rw: row.RW || "-",
-                                luasBangunan: row.LuasBangunan || 0,
+                                luasBangunan: parseFloat(row.LuasBangunan || 0),
                                 panjangBangunan: row.PanjangBangunan || 0,
                                 ukuranTotal: row.UkuranTotal || 0,
                                 atap: row.Atap || "Baik - 0%",
@@ -345,14 +357,7 @@
 
             // Permission & Action Logic
             const canEditDelete = (item) => user && (user.Role === 'admin' || user.Email === item.email);
-            const canVerify = () => user && user.Role === 'admin';
-
-            const handleUpdateStatus = (itemId, newStatus) => {
-                const newData = data.map(item => item.id === itemId ? {...item, status: newStatus} : item);
-                setData(newData);
-                if (selectedItem && selectedItem.id === itemId) setSelectedItem({...selectedItem, status: newStatus});
-                showToast("Status berhasil diperbarui (Simulasi Lokal).");
-            };
+            // Removed canVerify logic for UI removal
 
             const handleDelete = (itemId) => {
                 if (window.confirm("Yakin ingin menghapus data ini secara permanen?")) {
@@ -419,7 +424,7 @@
                 a.href = url; a.download = 'Laporan_Lengkap_SiJITUPASNA.csv'; a.click();
             };
 
-            // Enhanced PDF Generator
+            // Enhanced PDF Generator with Layout Fix
             const generatePDF = (item) => {
                 const doc = new jsPDF();
                 
@@ -441,29 +446,26 @@
                 doc.setFontSize(12);
                 let y = 60;
 
-                // Basic Info Header
+                // Basic Info Header (Left Side)
                 doc.setFont("helvetica", "bold");
-                doc.text(`ID Laporan: ${item.id}`, 20, y); 
-                doc.text(`Status: ${item.status}`, 140, y);
-                y += 5;
-                doc.setDrawColor(200, 200, 200);
-                doc.line(20, y, 190, y); y += 15;
-
-                // Add Image if available
+                doc.text(`ID Laporan: ${item.id}`, 20, y);
+                doc.text(`Status: ${item.status}`, 20, y + 6);
+                
+                // Add Image (Right Side, Top) - NO Overlap with Table
+                // Position image at top right, separate from flow
                 if (item.fotoURL && !item.fotoURL.includes("placehold.co")) {
                     try {
-                        // Attempt to add image - this might be blocked by CORS if not proxy/base64
-                        // For simplicity in this demo environment we'll try adding it
-                        // In production, images usually need to be converted to Base64 first
-                        doc.addImage(item.fotoURL, 'JPEG', 140, 70, 50, 35);
+                        // x=140, y=55, w=50, h=35
+                        doc.addImage(item.fotoURL, 'JPEG', 140, 55, 50, 35);
                     } catch (e) {
-                        console.log("Could not add image directly due to CORS or format", e);
-                        // Fallback text
                         doc.setFontSize(8);
                         doc.setTextColor(150);
-                        doc.text("(Foto tidak dapat dimuat otomatis)", 140, 85);
+                        doc.text("(Foto tidak tersedia)", 140, 70);
                     }
                 }
+                
+                // Move Y down below image area to start table safely
+                y = 100; 
 
                 // Detailed Data Table
                 const details = [
@@ -504,7 +506,7 @@
                     theme: 'grid',
                     headStyles: { fillColor: [249, 115, 22], textColor: [255, 255, 255] },
                     styles: { fontSize: 10, cellPadding: 4, overflow: 'linebreak' },
-                    columnStyles: { 0: { cellWidth: 70 }, 1: { cellWidth: 100 } }, // Adjusted width to leave room for image if needed
+                    columnStyles: { 0: { cellWidth: 70 }, 1: { cellWidth: 100 } }, 
                     margin: { top: 60 } 
                 });
 
@@ -513,14 +515,13 @@
                 // Signature Area
                 doc.setFontSize(10);
                 doc.setTextColor(0,0,0);
-                doc.text("Diverifikasi Oleh:", 140, finalY);
-                doc.text("Petugas BPBD / Admin", 140, finalY + 25);
+                doc.text("Mengetahui,", 140, finalY);
+                doc.text("Petugas BPBD / Verifikator", 140, finalY + 25);
                 doc.line(140, finalY + 24, 190, finalY + 24);
 
                 doc.setFontSize(9);
                 doc.setTextColor(100);
                 doc.text(`Dicetak dari Sistem SiJITUPASNA pada: ${new Date().toLocaleString()}`, 20, finalY + 40);
-                doc.text("Dokumen ini valid sebagai lampiran pengajuan rehabilitasi.", 20, finalY + 45);
 
                 doc.save(`Laporan_Lengkap_${item.nama.replace(/\s+/g, '_')}.pdf`);
             };
@@ -532,10 +533,38 @@
                 return { total, totalLoss, verified };
             }, [data]);
 
-            const filteredData = data.filter(item => 
-                (item.nama || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (item.alamat || "").toLowerCase().includes(searchTerm.toLowerCase())
-            );
+            // Filtering & Sorting Logic
+            const processedData = useMemo(() => {
+                // 1. Filter
+                let result = data.filter(item => 
+                    (item.nama || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    (item.alamat || "").toLowerCase().includes(searchTerm.toLowerCase())
+                );
+
+                // 2. Sort
+                result.sort((a, b) => {
+                    switch(sortOption) {
+                        case 'newest':
+                            return parseDate(b.timestamp) - parseDate(a.timestamp);
+                        case 'oldest':
+                            return parseDate(a.timestamp) - parseDate(b.timestamp);
+                        case 'loss_high':
+                            return b.kerugianAset - a.kerugianAset;
+                        case 'loss_low':
+                            return a.kerugianAset - b.kerugianAset;
+                        case 'area_high':
+                            return b.luasBangunan - a.luasBangunan;
+                        case 'area_low':
+                            return a.luasBangunan - b.luasBangunan;
+                        case 'user_asc':
+                            return a.email.localeCompare(b.email);
+                        default:
+                            return 0;
+                    }
+                });
+
+                return result;
+            }, [data, searchTerm, sortOption]);
 
             const kelurahan = settings.find(s => s.key === 'Kelurahan')?.value || "Dashboard Utama";
             const adminMessage = settings.find(s => s.key === 'Pesan Admin')?.value || "";
@@ -554,7 +583,6 @@
                         <div className="bg-gradient-to-r from-bpbd-darkOrange to-bpbd-orange text-white text-sm font-medium py-2.5 overflow-hidden shadow-sm relative z-40">
                              <div className="marquee-container">
                                 <div className="marquee-content flex gap-8 items-center">
-                                    <span className="flex items-center gap-2"><Icon name="bell" size={14}/> INFO: {adminMessage}</span>
                                     <span className="flex items-center gap-2"><Icon name="bell" size={14}/> INFO: {adminMessage}</span>
                                     <span className="flex items-center gap-2"><Icon name="bell" size={14}/> INFO: {adminMessage}</span>
                                 </div>
@@ -584,7 +612,7 @@
                                         onClick={exportAllData}
                                         className="hidden md:flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 text-sm font-semibold rounded-lg border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 transition-all shadow-sm"
                                     >
-                                        <Icon name="file-spreadsheet" size={18}/> Export Excel Lengkap
+                                        <Icon name="file-spreadsheet" size={18}/> Export Excel
                                     </button>
 
                                     <div className="hidden md:flex flex-col items-end border-r pr-6 border-gray-200">
@@ -641,11 +669,34 @@
                         </div>
 
                         {/* Filter & View Controls */}
-                        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white p-2 rounded-2xl border border-gray-200 shadow-sm sticky top-24 z-20">
-                            <div className="relative w-full md:w-96">
-                                <Icon name="search" size={18} className="absolute left-4 top-3.5 text-gray-400" />
-                                <input type="text" className="block w-full pl-11 pr-4 py-3 border-none bg-transparent focus:ring-0 text-gray-800 placeholder-gray-400" placeholder="Cari nama warga, alamat..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white p-3 rounded-2xl border border-gray-200 shadow-sm sticky top-24 z-20">
+                            <div className="flex flex-1 gap-4 w-full">
+                                <div className="relative flex-1">
+                                    <Icon name="search" size={18} className="absolute left-4 top-3.5 text-gray-400" />
+                                    <input type="text" className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-bpbd-orange focus:border-bpbd-orange transition-all" placeholder="Cari nama warga, alamat..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                                </div>
+                                
+                                <div className="relative w-48 hidden md:block">
+                                    <Icon name="arrow-up-down" size={16} className="absolute left-3 top-3.5 text-gray-500" />
+                                    <select 
+                                        value={sortOption} 
+                                        onChange={(e) => setSortOption(e.target.value)}
+                                        className="block w-full pl-9 pr-8 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-bpbd-orange focus:border-bpbd-orange appearance-none text-sm font-medium text-gray-700 cursor-pointer"
+                                    >
+                                        <option value="newest">Waktu Terbaru</option>
+                                        <option value="oldest">Waktu Terlama</option>
+                                        <option value="loss_high">Kerugian Tertinggi</option>
+                                        <option value="loss_low">Kerugian Terendah</option>
+                                        <option value="area_high">Luas Bangunan Terbesar</option>
+                                        <option value="area_low">Luas Bangunan Terkecil</option>
+                                        <option value="user_asc">User Inputter (A-Z)</option>
+                                    </select>
+                                    <div className="absolute right-3 top-4 pointer-events-none">
+                                        <Icon name="chevron-down" size={14} className="text-gray-500" />
+                                    </div>
+                                </div>
                             </div>
+
                             <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
                                 <button onClick={() => setViewMode('grid')} className={`p-2.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white text-bpbd-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}><Icon name="layout-grid" size={18}/></button>
                                 <button onClick={() => setViewMode('table')} className={`p-2.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white text-bpbd-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}><Icon name="table" size={18}/></button>
@@ -654,10 +705,10 @@
 
                         {/* Content Grid/Table */}
                         {loading ? <div className="flex flex-col items-center justify-center py-24"><div className="loader mb-4"></div><p className="text-gray-500 font-medium">Sinkronisasi data...</p></div> :
-                         filteredData.length === 0 ? <div className="text-center py-24 bg-white border border-dashed border-gray-300 rounded-3xl"><Icon name="search-x" className="mx-auto text-gray-300 mb-4" size={64}/><h3 className="text-lg font-bold text-gray-800">Data Tidak Ditemukan</h3><p className="text-gray-500">Coba kata kunci pencarian yang lain.</p></div> :
+                         processedData.length === 0 ? <div className="text-center py-24 bg-white border border-dashed border-gray-300 rounded-3xl"><Icon name="search-x" className="mx-auto text-gray-300 mb-4" size={64}/><h3 className="text-lg font-bold text-gray-800">Data Tidak Ditemukan</h3><p className="text-gray-500">Coba kata kunci pencarian yang lain.</p></div> :
                          viewMode === 'grid' ? 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredData.map(item => (
+                                {processedData.map(item => (
                                     <div key={item.id} className="bg-white rounded-2xl border border-gray-200 hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300 overflow-hidden flex flex-col group h-full">
                                         <div className="h-56 bg-gray-100 relative overflow-hidden">
                                             <img src={item.fotoURL} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" onError={(e) => {e.target.src='https://placehold.co/600x400?text=No+Image'}} />
@@ -706,7 +757,7 @@
                                             <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Aksi</th>
                                         </tr></thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
-                                            {filteredData.map(item => (
+                                            {processedData.map(item => (
                                                 <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <div className="font-bold text-gray-900">{item.nama}</div>
@@ -764,28 +815,6 @@
                                                     <StatusBadge status={selectedItem.status} />
                                                     <span className="text-xs text-gray-400">{selectedItem.timestamp.split(' ')[0]}</span>
                                                 </div>
-                                                
-                                                {canVerify() && (
-                                                    <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
-                                                        <h4 className="font-bold text-orange-800 text-sm mb-3 flex items-center gap-2">
-                                                            <Icon name="shield-alert" size={16}/> Verifikasi Admin
-                                                        </h4>
-                                                        <div className="grid grid-cols-2 gap-3">
-                                                            <button 
-                                                                onClick={() => handleUpdateStatus(selectedItem.id, "Terverifikasi")}
-                                                                className="flex items-center justify-center gap-2 bg-green-600 text-white text-sm font-bold py-2.5 rounded-lg hover:bg-green-700 transition shadow-sm hover:shadow-green-200"
-                                                            >
-                                                                <Icon name="check" size={16}/> Setujui
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => handleUpdateStatus(selectedItem.id, "Ditolak")}
-                                                                className="flex items-center justify-center gap-2 bg-red-600 text-white text-sm font-bold py-2.5 rounded-lg hover:bg-red-700 transition shadow-sm hover:shadow-red-200"
-                                                            >
-                                                                <Icon name="x" size={16}/> Tolak
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                )}
                                             </div>
                                         </div>
 
