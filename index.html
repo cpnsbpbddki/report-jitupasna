@@ -252,7 +252,7 @@
                                         <input 
                                             type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
                                             className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-bpbd-orange focus:border-bpbd-orange transition-all outline-none"
-                                            placeholder="nama@gmail.com"
+                                            placeholder="nama@instansi.com"
                                         />
                                     </div>
                                 </div>
@@ -275,7 +275,8 @@
                             </form>
                             <div className="mt-8 pt-6 border-t border-gray-100 text-center text-xs text-gray-400">
                                 <p className="font-semibold">Gunakan User E-FORM JITUPASNA untuk Login</p>
-								<p><a href="https://cpnsbpbddki.github.io/jitupasna/" target="_blank">Dapatkan User Anda Disini!</a></p>
+                                <p><a href="https://cpnsbpbddki.github.io/jitupasna/" target="_blank">Dapatkan User Anda Disini!</a></p>
+                                <p>Demo: test@gmail.com / test</p>
                             </div>
                         </div>
                     </div>
@@ -313,7 +314,9 @@
                                 nama: row.Nama || "Tanpa Nama",
                                 alamat: row.Alamat || "",
                                 rt: row.RT || "-", rw: row.RW || "-",
-                                luasBangunan: row.LuasBangunan || 0, 
+                                luasBangunan: row.LuasBangunan || 0,
+                                panjangBangunan: row.PanjangBangunan || 0,
+                                ukuranTotal: row.UkuranTotal || 0,
                                 atap: row.Atap || "Baik - 0%",
                                 dinding: row.Dinding || "Baik - 0%",
                                 lantai: row.Lantai || "Baik - 0%",
@@ -365,18 +368,58 @@
                 setTimeout(() => setToast(null), 4000);
             };
 
+            // Enhanced CSV Export
             const exportAllData = () => {
-                const headers = ["ID", "Email", "Nama", "Alamat", "RT", "RW", "Kerugian", "Status"];
+                const headers = [
+                    "ID", "UserEmail", "Timestamp", "Nama", "Alamat", "RT", "RW", 
+                    "Luas Bangunan", "Panjang Bangunan", "Ukuran Total", 
+                    "Atap", "Dinding", "Lantai", "Pondasi", "Keterangan", 
+                    "Jenis Bangunan", "Harga NJOP", "Foto URL", "Pekerjaan", "Penghasilan", 
+                    "Jml Keluarga", "Jml Anak Sekolah", "Hilang Penghasilan", 
+                    "Aset Terdampak", "Kerugian Aset", "Status"
+                ];
+                
                 const csvRows = [headers.join(",")];
+                
                 data.forEach(item => {
-                    csvRows.push([item.id, item.email, `"${item.nama}"`, `"${item.alamat}"`, item.rt, item.rw, item.kerugianAset, item.status].join(","));
+                    const row = [
+                        item.id, 
+                        item.email, 
+                        item.timestamp,
+                        `"${item.nama}"`, 
+                        `"${item.alamat}"`, 
+                        item.rt, 
+                        item.rw, 
+                        item.luasBangunan,
+                        item.panjangBangunan,
+                        item.ukuranTotal,
+                        `"${item.atap}"`,
+                        `"${item.dinding}"`,
+                        `"${item.lantai}"`,
+                        `"${item.pondasi}"`,
+                        `"${item.keterangan}"`,
+                        `"${item.jenisBangunan}"`,
+                        item.hargaNJOP,
+                        item.fotoURL,
+                        `"${item.pekerjaan}"`,
+                        item.penghasilan,
+                        item.jmlKeluarga,
+                        item.jmlAnak,
+                        item.hilangPenghasilan,
+                        `"${item.asetTerdampak}"`,
+                        item.kerugianAset,
+                        item.status
+                    ];
+                    csvRows.push(row.join(","));
                 });
+                
                 const blob = new Blob([csvRows.join("\n")], { type: 'text/csv' });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url; a.download = 'Laporan_SiJITUPASNA.csv'; a.click();
+                a.href = url; a.download = 'Laporan_Lengkap_SiJITUPASNA.csv'; a.click();
             };
 
+            // Enhanced PDF Generator
             const generatePDF = (item) => {
                 const doc = new jsPDF();
                 
@@ -398,6 +441,7 @@
                 doc.setFontSize(12);
                 let y = 60;
 
+                // Basic Info Header
                 doc.setFont("helvetica", "bold");
                 doc.text(`ID Laporan: ${item.id}`, 20, y); 
                 doc.text(`Status: ${item.status}`, 140, y);
@@ -405,16 +449,52 @@
                 doc.setDrawColor(200, 200, 200);
                 doc.line(20, y, 190, y); y += 15;
 
+                // Add Image if available
+                if (item.fotoURL && !item.fotoURL.includes("placehold.co")) {
+                    try {
+                        // Attempt to add image - this might be blocked by CORS if not proxy/base64
+                        // For simplicity in this demo environment we'll try adding it
+                        // In production, images usually need to be converted to Base64 first
+                        doc.addImage(item.fotoURL, 'JPEG', 140, 70, 50, 35);
+                    } catch (e) {
+                        console.log("Could not add image directly due to CORS or format", e);
+                        // Fallback text
+                        doc.setFontSize(8);
+                        doc.setTextColor(150);
+                        doc.text("(Foto tidak dapat dimuat otomatis)", 140, 85);
+                    }
+                }
+
+                // Detailed Data Table
                 const details = [
-                    ["Nama Warga", item.nama],
-                    ["Lokasi Aset", item.alamat],
+                    [{content: 'DATA PELAPOR', colSpan: 2, styles: {fillColor: [220, 220, 220], fontStyle: 'bold'}}],
+                    ["Nama Lengkap", item.nama],
+                    ["Email Pelapor", item.email],
+                    ["Waktu Pelaporan", item.timestamp],
+                    ["Pekerjaan", item.pekerjaan],
+                    ["Penghasilan", `Rp ${item.penghasilan.toLocaleString('id-ID')}`],
+                    ["Jumlah Anggota Keluarga", `${item.jmlKeluarga} orang (Anak Sekolah: ${item.jmlAnak})`],
+                    
+                    [{content: 'LOKASI & BANGUNAN', colSpan: 2, styles: {fillColor: [220, 220, 220], fontStyle: 'bold'}}],
+                    ["Alamat Lengkap", item.alamat],
                     ["RT / RW", `${item.rt} / ${item.rw}`],
-                    ["Jenis Aset", item.jenisBangunan],
-                    ["Nilai Kerugian", `Rp ${item.kerugianAset.toLocaleString('id-ID')}`],
+                    ["Jenis Legalitas", item.jenisBangunan],
+                    ["Harga NJOP", `Rp ${item.hargaNJOP.toLocaleString('id-ID')}`],
+                    ["Luas Bangunan", `${item.luasBangunan} m²`],
+                    ["Panjang Bangunan", `${item.panjangBangunan} m`],
+                    ["Ukuran Total", `${item.ukuranTotal} m²`],
+                    
+                    [{content: 'ANALISIS KERUSAKAN', colSpan: 2, styles: {fillColor: [220, 220, 220], fontStyle: 'bold'}}],
                     ["Kondisi Atap", item.atap],
                     ["Kondisi Dinding", item.dinding],
                     ["Kondisi Lantai", item.lantai],
-                    ["Keterangan", item.keterangan]
+                    ["Kondisi Pondasi", item.pondasi],
+                    ["Keterangan Tambahan", item.keterangan],
+                    
+                    [{content: 'ANALISIS KERUGIAN', colSpan: 2, styles: {fillColor: [220, 220, 220], fontStyle: 'bold'}}],
+                    ["Aset Terdampak", item.asetTerdampak],
+                    ["Hilang Penghasilan", `Rp ${item.hilangPenghasilan}`],
+                    ["Total Kerugian Aset", `Rp ${item.kerugianAset.toLocaleString('id-ID')}`]
                 ];
 
                 doc.autoTable({
@@ -423,16 +503,26 @@
                     body: details,
                     theme: 'grid',
                     headStyles: { fillColor: [249, 115, 22], textColor: [255, 255, 255] },
-                    styles: { fontSize: 10, cellPadding: 6 }
+                    styles: { fontSize: 10, cellPadding: 4, overflow: 'linebreak' },
+                    columnStyles: { 0: { cellWidth: 70 }, 1: { cellWidth: 100 } }, // Adjusted width to leave room for image if needed
+                    margin: { top: 60 } 
                 });
 
                 const finalY = doc.lastAutoTable.finalY + 20;
+                
+                // Signature Area
+                doc.setFontSize(10);
+                doc.setTextColor(0,0,0);
+                doc.text("Diverifikasi Oleh:", 140, finalY);
+                doc.text("Petugas BPBD / Admin", 140, finalY + 25);
+                doc.line(140, finalY + 24, 190, finalY + 24);
+
                 doc.setFontSize(9);
                 doc.setTextColor(100);
-                doc.text(`Dicetak dari Sistem SiJITUPASNA pada: ${new Date().toLocaleString()}`, 20, finalY);
-                doc.text("Dokumen ini valid sebagai lampiran pengajuan rehabilitasi.", 20, finalY + 5);
+                doc.text(`Dicetak dari Sistem SiJITUPASNA pada: ${new Date().toLocaleString()}`, 20, finalY + 40);
+                doc.text("Dokumen ini valid sebagai lampiran pengajuan rehabilitasi.", 20, finalY + 45);
 
-                doc.save(`Laporan_SiJITUPASNA_${item.nama.replace(/\s+/g, '_')}.pdf`);
+                doc.save(`Laporan_Lengkap_${item.nama.replace(/\s+/g, '_')}.pdf`);
             };
 
             const stats = useMemo(() => {
@@ -494,7 +584,7 @@
                                         onClick={exportAllData}
                                         className="hidden md:flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 text-sm font-semibold rounded-lg border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 transition-all shadow-sm"
                                     >
-                                        <Icon name="file-spreadsheet" size={18}/> Export Excel
+                                        <Icon name="file-spreadsheet" size={18}/> Export Excel Lengkap
                                     </button>
 
                                     <div className="hidden md:flex flex-col items-end border-r pr-6 border-gray-200">
@@ -754,7 +844,7 @@
                                                 onClick={() => generatePDF(selectedItem)}
                                                 className="px-6 py-2.5 bg-bpbd-blue text-white font-bold rounded-xl hover:bg-blue-900 transition flex items-center gap-2 shadow-lg shadow-blue-200"
                                             >
-                                                <Icon name="printer" size={18}/> Cetak PDF
+                                                <Icon name="printer" size={18}/> Cetak PDF Lengkap
                                             </button>
                                         )}
                                     </div>
