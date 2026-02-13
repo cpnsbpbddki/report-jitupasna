@@ -3,520 +3,431 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SiJITUPASNA - Sistem Pengkajian Kebutuhan Pasca Bencana</title>
+    <title>TurboMail - Temporary Email</title>
     
-    <!-- React & ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <!-- Babel for JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- Tailwind CSS -->
+    <!-- Menggunakan Tailwind CSS via CDN (Tidak perlu install) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Icon Library -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Konfigurasi Tailwind & Style Tambahan -->
     <script>
         tailwind.config = {
-            darkMode: 'class',
             theme: {
                 extend: {
-                    colors: {
-                        bpbd: {
-                            orange: '#F97316', // Orange-500
-                            darkOrange: '#EA580C', // Orange-600
-                            blue: '#1E40AF',   // Blue-800
-                            lightBlue: '#3B82F6', // Blue-500
-                        },
-                        dark: {
-                            bg: '#0F172A',      // Slate-900
-                            card: '#1E293B',    // Slate-800
-                            text: '#F1F5F9',    // Slate-100
-                            border: '#334155'   // Slate-700
-                        }
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    animation: {
+                        'spin-slow': 'spin 3s linear infinite',
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     }
                 }
             }
         }
     </script>
-    
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- PapaParse for CSV -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    
-    <!-- jsPDF for PDF Generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        .dark ::-webkit-scrollbar-thumb { background: #475569; }
-        .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
-        .loader {
-            border: 3px solid #f3f3f3; border-radius: 50%; border-top: 3px solid #F97316;
-            width: 24px; height: 24px; animation: spin 1s linear infinite;
+        /* Scrollbar Kustom */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .dark .loader { border-color: #334155; border-top-color: #F97316; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .marquee-container { overflow: hidden; white-space: nowrap; }
-        .marquee-content { display: inline-block; animation: marquee 25s linear infinite; }
-        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-        .bg-pattern {
-            background-color: #1E40AF;
-            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-        }
-        .dark .bg-pattern { background-color: #0F172A; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-900 dark:bg-dark-bg dark:text-dark-text transition-colors duration-300">
-    <div id="root"></div>
+<body class="bg-slate-900 text-slate-200 min-h-screen selection:bg-indigo-500 selection:text-white overflow-x-hidden">
 
-    <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
-        const { jsPDF } = window.jspdf;
+    <!-- Background Decoration -->
+    <div class="fixed inset-0 z-0 pointer-events-none">
+        <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-indigo-600/20 rounded-full blur-[100px]"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-purple-600/20 rounded-full blur-[100px]"></div>
+    </div>
 
-        // --- KONFIGURASI LINK SPREADSHEET (HARAP DIISI) ---
-        const CONFIG = {
-            // Ganti URL ini dengan link CSV Publish to Web dari Sheet 'Data'
-            DATA_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLjEG_S5w9Np-0utA-Q87u2fOo2D-2SccaH7ajr7ll3ljuuLa16lNv16wD_CUGUfCp3-_SRkWIt0UC/pub?gid=89250441&single=true&output=csv",
-            // Ganti URL ini dengan link CSV Publish to Web dari Sheet 'Users'
-            USERS_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLjEG_S5w9Np-0utA-Q87u2fOo2D-2SccaH7ajr7ll3ljuuLa16lNv16wD_CUGUfCp3-_SRkWIt0UC/pub?gid=0&single=true&output=csv", 
-            // Ganti URL ini dengan link CSV Publish to Web dari Sheet 'Settings'
-            SETTINGS_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLjEG_S5w9Np-0utA-Q87u2fOo2D-2SccaH7ajr7ll3ljuuLa16lNv16wD_CUGUfCp3-_SRkWIt0UC/pub?gid=1856001878&single=true&output=csv"
-        };
-
-        // --- HELPER FUNCTIONS ---
-        const getGoogleDriveDirectLink = (url) => {
-            if (!url) return "https://placehold.co/600x400?text=No+Image";
-            try {
-                if (url.includes("drive.google.com") || url.includes("docs.google.com")) {
-                    const idMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                    if (idMatch && idMatch[1]) return `https://lh3.googleusercontent.com/d/${idMatch[1]}`;
-                }
-                return url;
-            } catch (e) { return url; }
-        };
-
-        const cleanCurrency = (val) => {
-            if (typeof val === 'number') return val;
-            if (!val) return 0;
-            return parseFloat(val.toString().replace(/[^0-9.-]+/g,"")) || 0;
-        };
-
-        const parseDate = (dateStr) => {
-            if (!dateStr) return new Date(0);
-            return new Date(dateStr); // Standard date parser
-        };
-
-        // --- COMPONENTS ---
-        const Icon = ({ name, size = 18, className = "" }) => {
-            useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [name]);
-            return <i data-lucide={name} width={size} height={size} className={className}></i>;
-        };
-
-        const ThemeToggle = ({ isDark, toggleTheme }) => (
-            <button onClick={toggleTheme} className="p-2.5 rounded-xl transition-all bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-border dark:text-gray-300 dark:hover:bg-gray-700">
-                {isDark ? <Icon name="sun" size={20} /> : <Icon name="moon" size={20} />}
-            </button>
-        );
-
-        const StatusBadge = () => (
-            <span className="px-3 py-1 rounded-full text-xs font-semibold border bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 inline-flex items-center gap-1">
-                <Icon name="file-check" size={12}/> Terdata
-            </span>
-        );
-
-        const DamageBar = ({ label, value }) => {
-            let color = "bg-green-500";
-            const valLower = (value || "").toLowerCase();
-            if (valLower.includes('sedang')) color = "bg-bpbd-orange";
-            if (valLower.includes('berat') || valLower.includes('hancur')) color = "bg-red-600";
+    <div class="relative z-10 max-w-6xl mx-auto px-4 py-6 md:py-10">
+        
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/20">
+                    <i data-lucide="mail" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                        TurboMail
+                    </h1>
+                    <span class="text-[10px] text-slate-500 font-mono tracking-wider uppercase border border-slate-700 px-1.5 rounded">Secure Temp Inbox</span>
+                </div>
+            </div>
             
-            // Simple visual width logic based on text
-            let width = '10%';
-            if (valLower.includes('baik')) width = '10%';
-            else if (valLower.includes('ringan')) width = '30%';
-            else if (valLower.includes('sedang')) width = '60%';
-            else if (valLower.includes('berat')) width = '90%';
-            else if (valLower.includes('hancur')) width = '100%';
+            <div class="flex items-center gap-3 text-sm font-medium text-slate-400 bg-slate-800/50 px-4 py-2 rounded-full border border-slate-700/50">
+                <i data-lucide="clock" class="w-4 h-4 text-indigo-400"></i>
+                <span>Auto-Reset: <span id="timer-display" class="text-white font-mono">10:00</span></span>
+            </div>
+        </header>
 
-            return (
-                <div className="mb-3">
-                    <div className="flex justify-between text-xs mb-1.5 font-medium">
-                        <span className="text-gray-600 dark:text-gray-400">{label}</span>
-                        <span className="text-gray-900 dark:text-gray-200">{value || "Tidak Ada Data"}</span>
-                    </div>
-                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
-                        <div className={`h-2 rounded-full ${color} transition-all duration-500`} style={{ width }}></div>
+        <!-- Main Content -->
+        <main class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Section 1: Email Address Control -->
+            <section class="lg:col-span-12">
+                <div class="glass-panel rounded-2xl p-6 shadow-xl relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                    
+                    <div class="flex flex-col md:flex-row gap-4 items-center justify-between relative z-10">
+                        <div class="w-full">
+                            <label class="text-xs uppercase text-slate-500 font-bold tracking-widest mb-2 block">Alamat Email Sementara</label>
+                            <div class="flex items-center gap-3 bg-slate-900/80 p-3 md:p-4 rounded-xl border border-slate-700/50 shadow-inner group-focus-within:border-indigo-500/50 transition-colors">
+                                <div id="status-indicator" class="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
+                                <input 
+                                    type="text" 
+                                    id="email-input" 
+                                    readonly 
+                                    class="bg-transparent border-none outline-none w-full text-base md:text-xl font-mono text-slate-200 placeholder-slate-600 truncate"
+                                    value="Memuat..."
+                                >
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2 w-full md:w-auto mt-2 md:mt-8">
+                            <button onclick="copyEmail()" id="btn-copy" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3.5 rounded-xl font-semibold transition-all shadow-lg shadow-indigo-600/20 active:scale-95">
+                                <i data-lucide="copy" class="w-4 h-4"></i>
+                                <span id="btn-copy-text">Salin</span>
+                            </button>
+                            
+                            <button onclick="fetchMessages()" id="btn-refresh" class="flex items-center justify-center p-3.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl transition-all border border-slate-600 active:scale-95" title="Refresh Inbox">
+                                <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                            </button>
+
+                            <button onclick="generateNewEmail()" class="flex items-center justify-center p-3.5 bg-slate-700 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 text-slate-200 rounded-xl transition-all border border-slate-600 active:scale-95 group/del" title="Ganti Email Baru">
+                                <i data-lucide="trash-2" class="w-5 h-5 group-hover/del:text-red-400"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            );
-        };
+            </section>
 
-        // --- MOCK DATA (Structure Match New Database) ---
-        const MOCK_DATA_USERS = [
-            { "Email": "admin@gmail.com", "Password": "admin", "Role": "admin", "Nama Lengkap": "Admin BPBD", "Organisasi": "BPBD", "No HP": "0812345678" },
-            { "Email": "test@gmail.com", "Password": "test", "Role": "user", "Nama Lengkap": "Petugas Lapangan", "Organisasi": "Kelurahan", "No HP": "0812987654" }
-        ];
+            <!-- Section 2: Inbox & Message Viewer -->
+            <section class="lg:col-span-12 min-h-[500px] flex flex-col md:flex-row gap-6">
+                
+                <!-- Inbox List (Sidebar) -->
+                <div class="w-full md:w-1/3 glass-panel rounded-2xl overflow-hidden flex flex-col h-[500px] md:h-[600px]">
+                    <div class="p-4 border-b border-slate-700 bg-slate-800/30 flex justify-between items-center backdrop-blur-sm">
+                        <h3 class="font-semibold text-slate-200 flex items-center gap-2">
+                            <i data-lucide="inbox" class="w-4 h-4 text-slate-400"></i> Kotak Masuk
+                        </h3>
+                        <span id="msg-count" class="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/20 font-mono">0</span>
+                    </div>
+                    
+                    <div id="inbox-list" class="flex-1 overflow-y-auto p-2 space-y-2 relative">
+                        <!-- Email Items will be injected here via JS -->
+                        <div class="flex flex-col items-center justify-center h-full text-slate-500 text-center p-6">
+                            <div class="w-12 h-12 bg-slate-700/30 rounded-full flex items-center justify-center mb-3">
+                                <i data-lucide="loader" class="w-6 h-6 animate-spin-slow"></i>
+                            </div>
+                            <p class="text-sm">Menunggu pesan...</p>
+                        </div>
+                    </div>
+                </div>
 
-        const MOCK_DATA_SETTINGS = [
-            { "Key": "current_kelurahan", "Value": "Kelurahan Pela Mampang" }
-        ];
+                <!-- Message Detail (Main View) -->
+                <div id="message-view" class="w-full md:w-2/3 glass-panel rounded-2xl overflow-hidden flex flex-col h-[500px] md:h-[600px] relative">
+                    
+                    <!-- Empty State -->
+                    <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 z-0">
+                        <i data-lucide="mail-open" class="w-16 h-16 mb-4 opacity-20"></i>
+                        <h3 class="text-lg font-medium text-slate-400">Belum ada pesan dipilih</h3>
+                        <p class="text-sm opacity-50 max-w-xs text-center mt-2">Pilih email dari daftar di sebelah kiri untuk membacanya.</p>
+                    </div>
 
-        const MOCK_DATA_KERUSAKAN = [
-            {
-                "ID": "2fc86563-5142",
-                "Timestamp": "2026-02-13 14:27:24",
-                "User Input": "test@gmail.com",
-                "Kelurahan": "Kelurahan Pela Mampang",
-                "Nama Pemilik": "GUNTUR DUTA P S",
-                "Alamat": "Jalan Kyai Haji Zainul Arifin, No 71",
-                "Lokasi (Lat, Long)": "-6.1615776745717294, 106.80832562075291",
-                "RT": "10", "RW": "10",
-                "Lebar Bangunan": "4", "Panjang Bangunan": "3", "Ukuran Bangungan (m2)": "12.00",
-                "Lantai": "2", "Link Foto": "https://placehold.co/600x400",
-                "Kerusakan Atap": "Sedang", "Kerusakan Dinding": "Baik", "Kerusakan Lantai": "Baik", "Kerusakan Pondasi": "Baik",
-                "Ket. Bangunan": "Sedang (44%)", "Jenis Bangunan": "SHM",
-                "Harga Bangunan (NJOP)": "343343", "Perkiraan Kerusakan (Rp)": "4120116",
-                "Jml KK": "3", "Jml Anggota Keluarga": "5", "Jml Anak Sekolah": "2",
-                "Total Kerugian Aset (Rp)": "4500000",
-                "Jenis Pekerjaan": "Wiraswasta", "Penghasilan/Hari": "100000", "Kehilangan Penghasilan (Rp)": "200000"
+                    <!-- Content State (Hidden by default) -->
+                    <div id="content-state" class="hidden flex-col h-full z-10 bg-slate-900/50">
+                        <div class="p-6 border-b border-slate-700 bg-slate-800/50">
+                            <button onclick="closeMessage()" class="md:hidden mb-4 flex items-center text-xs text-slate-400 hover:text-white">
+                                <i data-lucide="arrow-left" class="w-3 h-3 mr-1"></i> Kembali
+                            </button>
+
+                            <div class="flex justify-between items-start gap-4">
+                                <h2 id="view-subject" class="text-xl font-bold text-white leading-tight">Subject</h2>
+                                <span id="view-date" class="text-[10px] text-slate-400 font-mono bg-slate-900 px-2 py-1 rounded whitespace-nowrap">Time</span>
+                            </div>
+                            
+                            <div class="flex items-center gap-3 mt-4">
+                                <div id="view-avatar" class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-lg font-bold text-white shadow-lg">
+                                    ?
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-400 uppercase tracking-wide">Pengirim</p>
+                                    <p id="view-from" class="text-slate-200 font-medium text-sm">sender@example.com</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 p-6 overflow-y-auto bg-slate-900/20">
+                            <div id="view-body" class="prose prose-invert prose-sm max-w-none text-slate-300 whitespace-pre-wrap font-sans leading-relaxed">
+                                <!-- Body content -->
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </main>
+
+        <footer class="mt-8 text-center text-slate-600 text-xs border-t border-slate-800/50 pt-6">
+            <p>Dibangun dengan Cloudflare Workers & Vanilla JS. <br class="md:hidden">Privasi terlindungi.</p>
+        </footer>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- KONFIGURASI (WAJIB DIEDIT) ---
+        // Ganti URL ini dengan URL Worker Anda setelah deploy
+        const WORKER_API_URL = "https://admin.cpns-bpbddki.workers.dev"; 
+        
+        // Ganti dengan domain asli Anda
+        const DOMAIN_NAME = "jitupasna.online";
+        
+        // Set ke false jika Worker sudah siap digunakan
+        const DEMO_MODE = false; 
+        
+        // ----------------------------------
+
+        // State Variables
+        let currentEmail = '';
+        let messages = [];
+        let timeLeft = 6000; // 10 menit
+        let timerInterval;
+        let refreshInterval;
+
+        // Inisialisasi Aplikasi
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons(); // Load icons
+            initApp();
+        });
+
+        function initApp() {
+            // Cek local storage apakah ada email tersimpan
+            const savedEmail = localStorage.getItem('temp_email');
+            
+            if (savedEmail && !DEMO_MODE) {
+                currentEmail = savedEmail;
+            } else {
+                generateNewEmail(false);
             }
-        ];
+            
+            updateEmailDisplay();
+            startTimer();
+            fetchMessages(); // Fetch pertama
+            
+            // Auto refresh setiap 10 detik
+            refreshInterval = setInterval(fetchMessages, 10000);
+        }
 
-        // --- COMPONENTS ---
+        function generateNewEmail(resetUI = true) {
+            const randomUser = Math.random().toString(36).substring(2, 10);
+            currentEmail = `${randomUser}@${DOMAIN_NAME}`;
+            localStorage.setItem('temp_email', currentEmail);
+            
+            if (resetUI) {
+                messages = [];
+                renderInbox();
+                closeMessage();
+                resetTimer();
+                updateEmailDisplay();
+                fetchMessages(); // Langsung cek inbox kosong
+            }
+        }
 
-        const LoginPage = ({ onLogin, loading, error }) => {
-            const [email, setEmail] = useState("");
-            const [password, setPassword] = useState("");
-            return (
-                <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-bg px-4 font-sans bg-pattern transition-colors duration-300">
-                    <div className="max-w-md w-full bg-white dark:bg-dark-card rounded-2xl shadow-2xl overflow-hidden border border-gray-100 dark:border-dark-border">
-                        <div className="bg-white dark:bg-dark-card p-8 pb-0 text-center transition-colors duration-300">
-                            <div className="w-20 h-20 bg-bpbd-orange rounded-2xl rotate-3 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-200 dark:shadow-none">
-                                <Icon name="activity" size={40} className="text-white -rotate-3" />
-                            </div>
-                            <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">SiJITUPASNA</h2>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm mt-2 font-medium">Sistem Pengkajian Kebutuhan Pasca Bencana</p>
-                        </div>
-                        <div className="p-8 pt-6">
-                            {error && <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-xl text-sm mb-6 flex items-start gap-3 border border-red-100 dark:border-red-900/30 shadow-sm"><Icon name="alert-triangle" size={18} className="mt-0.5 shrink-0" /> <span>{error}</span></div>}
-                            <form onSubmit={(e) => { e.preventDefault(); onLogin(email, password); }} className="space-y-5">
-                                <div className="space-y-1.5"><label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 ml-1">Email</label><div className="relative"><div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Icon name="mail" size={18} className="text-gray-400 dark:text-gray-500" /></div><input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="block w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-bpbd-orange focus:border-bpbd-orange dark:text-white transition-all outline-none" placeholder="email@instansi.com" /></div></div>
-                                <div className="space-y-1.5"><label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 ml-1">Password</label><div className="relative"><div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Icon name="lock" size={18} className="text-gray-400 dark:text-gray-500" /></div><input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="block w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-bpbd-orange focus:border-bpbd-orange dark:text-white transition-all outline-none" placeholder="••••••••" /></div></div>
-                                <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-bpbd-orange to-bpbd-darkOrange hover:from-orange-600 hover:to-orange-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-orange-200 dark:shadow-none hover:shadow-orange-300 transform hover:-translate-y-0.5 active:translate-y-0">{loading ? "Memuat..." : "Masuk Aplikasi"}</button>
-                            </form>
-                            <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 text-center text-xs text-gray-400"><p>Admin: admin@gmail.com / admin</p><p>User: test@gmail.com / test</p></div>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
+        function updateEmailDisplay() {
+            document.getElementById('email-input').value = currentEmail;
+        }
 
-        const Dashboard = ({ user, onLogout, settings, isDark, toggleTheme }) => {
-            const [data, setData] = useState([]);
-            const [loading, setLoading] = useState(true);
-            const [searchTerm, setSearchTerm] = useState("");
-            const [viewMode, setViewMode] = useState("grid");
-            const [sortOption, setSortOption] = useState("newest");
-            const [selectedItem, setSelectedItem] = useState(null);
+        function startTimer() {
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    updateTimerDisplay();
+                } else {
+                    // Opsional: Generate email baru jika waktu habis
+                    // generateNewEmail();
+                }
+            }, 1000);
+        }
 
-            useEffect(() => {
-                const fetchData = async () => {
-                    setLoading(true);
-                    // Use Mock Data if URL is placeholder or matching sample
-                    if (!CONFIG.DATA_URL || CONFIG.DATA_URL.includes("docs.google.com/spreadsheets/d/e/2PACX-1vR6y7q4z3F1f1r2x3g4h5i6j7k8l9m0n1o2p3q4r5s6t7u8v9w0x1y2z3a4b5c6d7e8f9g0h1i2j3k4")) {
-                        processData(MOCK_DATA_KERUSAKAN);
-                        setLoading(false);
-                        return;
+        function resetTimer() {
+            timeLeft = 600;
+            updateTimerDisplay();
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            document.getElementById('timer-display').textContent = 
+                `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+            
+            // Ubah warna indikator jika waktu mau habis
+            const indicator = document.getElementById('status-indicator');
+            if (timeLeft < 60) {
+                indicator.classList.remove('bg-green-500');
+                indicator.classList.add('bg-red-500', 'animate-pulse');
+            } else {
+                indicator.classList.add('bg-green-500');
+                indicator.classList.remove('bg-red-500', 'animate-pulse');
+            }
+        }
+
+        async function fetchMessages() {
+            const btnRefresh = document.getElementById('btn-refresh');
+            const icon = btnRefresh.querySelector('i');
+            icon.classList.add('animate-spin'); // Efek loading icon
+
+            if (DEMO_MODE) {
+                // SIMULASI DATA DUMMY
+                await new Promise(r => setTimeout(r, 800)); // Fake delay
+                
+                // Tambah pesan dummy acak sesekali
+                if (Math.random() > 0.5 || messages.length === 0) {
+                    const id = Date.now();
+                    const newMsg = {
+                        id: id,
+                        from: "security@facebook-clone.com",
+                        subject: "Kode Login Facebook Anda: " + Math.floor(100000 + Math.random() * 900000),
+                        date: new Date().toLocaleTimeString(),
+                        body: `Halo,\n\nKami menerima permintaan login.\nGunakan kode berikut: ${Math.floor(100000 + Math.random() * 900000)}\n\nJika ini bukan Anda, abaikan saja.`,
+                        avatar: "F"
+                    };
+                    
+                    // Cek duplikat sederhana
+                    const exists = messages.some(m => m.subject === newMsg.subject);
+                    if (!exists) {
+                        messages.unshift(newMsg);
+                        renderInbox();
                     }
-                    Papa.parse(CONFIG.DATA_URL, {
-                        download: true, header: true,
-                        complete: (results) => { processData(results.data); setLoading(false); },
-                        error: () => { processData(MOCK_DATA_KERUSAKAN); setLoading(false); }
-                    });
-                };
-                fetchData();
-            }, []);
-
-            const processData = (rawData) => {
-                const processed = rawData.filter(row => row['ID'] || row['Nama Pemilik']).map(row => ({
-                    id: row['ID'] || Math.random().toString(36).substr(2,9),
-                    timestamp: row['Timestamp'],
-                    email: row['User Input'],
-                    kelurahan: row['Kelurahan'],
-                    nama: row['Nama Pemilik'],
-                    alamat: row['Alamat'],
-                    lokasi: row['Lokasi (Lat, Long)'],
-                    rt: row['RT'], rw: row['RW'],
-                    dimensi: `${row['Panjang Bangunan']}x${row['Lebar Bangunan']} m`,
-                    luasBangunan: parseFloat(row['Ukuran Bangungan (m2)'] || 0),
-                    lantai: row['Lantai'],
-                    fotoURL: getGoogleDriveDirectLink(row['Link Foto']),
-                    atap: row['Kerusakan Atap'],
-                    dinding: row['Kerusakan Dinding'],
-                    lantai_rusak: row['Kerusakan Lantai'],
-                    pondasi: row['Kerusakan Pondasi'],
-                    ket_bangunan: row['Ket. Bangunan'],
-                    jenisBangunan: row['Jenis Bangunan'],
-                    njop: cleanCurrency(row['Harga Bangunan (NJOP)']),
-                    perkiraan_rusak: cleanCurrency(row['Perkiraan Kerusakan (Rp)']),
-                    jml_kk: row['Jml KK'],
-                    jml_keluarga: row['Jml Anggota Keluarga'],
-                    jml_anak: row['Jml Anak Sekolah'],
-                    pekerjaan: row['Jenis Pekerjaan'],
-                    penghasilan: cleanCurrency(row['Penghasilan/Hari']),
-                    hilang_penghasilan: cleanCurrency(row['Kehilangan Penghasilan (Rp)']),
-                    kerugianAset: cleanCurrency(row['Total Kerugian Aset (Rp)']),
-                    status: "Terdata" // Default status as requested
-                }));
-                setData(processed);
-            };
-
-            const handleDelete = (itemId) => {
-                if (window.confirm("Hapus data ini (Simulasi)?")) {
-                    setData(data.filter(i => i.id !== itemId));
-                    setSelectedItem(null);
                 }
-            };
-
-            // Enhanced CSV Export matching new columns
-            const exportAllData = () => {
-                // Generate CSV string manually based on current data state
-                const headers = ["ID","Timestamp","User Input","Kelurahan","Nama Pemilik","Alamat","Lokasi","RT","RW","Dimensi","Luas(m2)","Lantai","Atap","Dinding","Lantai Rusak","Pondasi","Ket","Jenis","NJOP","Kerugian","Pekerjaan","Penghasilan","Jml KK","Status"];
-                const rows = data.map(i => [
-                    i.id, i.timestamp, i.email, i.kelurahan, `"${i.nama}"`, `"${i.alamat}"`, `"${i.lokasi}"`, i.rt, i.rw, i.dimensi, i.luasBangunan, i.lantai, 
-                    i.atap, i.dinding, i.lantai_rusak, i.pondasi, i.ket_bangunan, i.jenisBangunan, i.njop, i.kerugianAset, i.pekerjaan, i.penghasilan, i.jml_kk, i.status
-                ].join(","));
-                const csvContent = [headers.join(","), ...rows].join("\n");
-                const blob = new Blob([csvContent], { type: 'text/csv' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = url; a.download = 'Data_JITUPASNA_Lengkap.csv'; a.click();
-            };
-
-            const generatePDF = (item) => {
-                const doc = new jsPDF();
-                doc.setFillColor(249, 115, 22); doc.rect(0, 0, 210, 5, 'F');
-                doc.setFillColor(30, 64, 175); doc.rect(0, 5, 210, 40, 'F');
-                doc.setTextColor(255, 255, 255); doc.setFontSize(24); doc.setFont("helvetica", "bold");
-                doc.text("SiJITUPASNA", 105, 25, null, null, "center");
-                doc.setFontSize(10); doc.setFont("helvetica", "normal");
-                doc.text("Laporan Verifikasi Kerusakan & Kerugian Pasca Bencana", 105, 35, null, null, "center");
-
-                doc.setTextColor(0, 0, 0); doc.setFontSize(12);
-                let y = 60;
-                doc.setFont("helvetica", "bold"); doc.text(`ID: ${item.id}`, 20, y); doc.text(`Tgl: ${item.timestamp}`, 20, y+6);
-                
-                if (item.fotoURL && !item.fotoURL.includes("placehold")) {
-                    try { doc.addImage(item.fotoURL, 'JPEG', 140, 55, 50, 35); } catch(e) {}
-                }
-                y = 100;
-
-                const details = [
-                    [{content: 'IDENTITAS PEMILIK', colSpan: 2, styles: {fillColor: [220, 220, 220], fontStyle: 'bold'}}],
-                    ["Nama Lengkap", item.nama], ["Alamat", `${item.alamat} RT ${item.rt}/RW ${item.rw}`],
-                    ["Kelurahan", item.kelurahan], ["Koordinat", item.lokasi],
-                    ["Pekerjaan", item.pekerjaan], ["Penghasilan/Hari", `Rp ${item.penghasilan.toLocaleString('id-ID')}`],
-                    ["Jml Anggota Keluarga", `${item.jml_keluarga} Jiwa (KK: ${item.jml_kk})`],
+            } else {
+                // LOGIKA REAL: FETCH KE WORKER
+                try {
+                    const user = currentEmail.split('@')[0];
+                    const response = await fetch(`${WORKER_API_URL}/api/messages?user=${user}`);
+                    const data = await response.json();
                     
-                    [{content: 'DATA BANGUNAN', colSpan: 2, styles: {fillColor: [220, 220, 220], fontStyle: 'bold'}}],
-                    ["Jenis Bangunan", item.jenisBangunan], ["Luas", `${item.luasBangunan} m² (${item.dimensi})`],
-                    ["Jumlah Lantai", item.lantai], ["NJOP", `Rp ${item.njop.toLocaleString('id-ID')}`],
-                    
-                    [{content: 'ANALISIS KERUSAKAN', colSpan: 2, styles: {fillColor: [220, 220, 220], fontStyle: 'bold'}}],
-                    ["Atap", item.atap], ["Dinding", item.dinding], ["Lantai", item.lantai_rusak], ["Pondasi", item.pondasi],
-                    ["Keterangan", item.ket_bangunan],
-                    
-                    [{content: 'ANALISIS KERUGIAN', colSpan: 2, styles: {fillColor: [220, 220, 220], fontStyle: 'bold'}}],
-                    ["Hilang Penghasilan", `Rp ${item.hilang_penghasilan.toLocaleString('id-ID')}`],
-                    ["Perkiraan Kerusakan", `Rp ${item.perkiraan_rusak.toLocaleString('id-ID')}`],
-                    ["Total Kerugian Aset", `Rp ${item.kerugianAset.toLocaleString('id-ID')}`]
-                ];
-
-                doc.autoTable({ startY: y, body: details, theme: 'grid', styles: { fontSize: 10, cellPadding: 3 } });
-                doc.save(`Laporan_${item.nama.replace(/\s+/g,'_')}.pdf`);
-            };
-
-            // Logic
-            const processedData = useMemo(() => {
-                let res = data.filter(i => (i.nama||"").toLowerCase().includes(searchTerm.toLowerCase()));
-                if(sortOption === 'newest') res.sort((a,b) => parseDate(b.timestamp) - parseDate(a.timestamp));
-                if(sortOption === 'loss_high') res.sort((a,b) => b.kerugianAset - a.kerugianAset);
-                return res;
-            }, [data, searchTerm, sortOption]);
-
-            const canEditDelete = (item) => user && (user.Role === 'admin' || user.Email === item.email);
-            const isAdmin = user && user.Role === 'admin';
-            const currentKelurahan = settings.find(s => s.Key === 'current_kelurahan')?.Value || "Dashboard Utama";
-
-            return (
-                <div className="min-h-screen pb-10 bg-slate-50 dark:bg-dark-bg transition-colors duration-300">
-                    {/* Header */}
-                    <header className="bg-white dark:bg-dark-card border-b border-gray-200 dark:border-dark-border sticky top-0 z-30 shadow-sm backdrop-blur-md bg-white/90 dark:bg-dark-card/90">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex justify-between items-center">
-                            <div className="flex items-center gap-4">
-                                <div className="bg-gradient-to-br from-bpbd-orange to-red-600 text-white p-2.5 rounded-xl shadow-lg"><Icon name="activity" size={26} /></div>
-                                <div><h1 className="text-2xl font-extrabold text-gray-900 dark:text-white leading-none">SiJITUPASNA</h1><div className="flex items-center gap-2 mt-1"><span className="text-xs font-semibold px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-bpbd-blue dark:text-blue-300 rounded border border-blue-100 dark:border-blue-800 uppercase">{currentKelurahan}</span></div></div>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                {isAdmin && <button onClick={exportAllData} className="hidden md:flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-sm font-semibold rounded-lg border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100"><Icon name="file-spreadsheet" size={18}/> Export CSV</button>}
-                                <ThemeToggle isDark={isDark} toggleTheme={toggleTheme} />
-                                <div className="hidden md:flex flex-col items-end border-r pr-6 border-gray-200 dark:border-gray-700"><span className="text-sm font-bold text-gray-800 dark:text-gray-200">{user['Nama Lengkap']}</span><span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{user.Organisasi} • <span className="text-bpbd-orange uppercase">{user.Role}</span></span></div>
-                                <button onClick={onLogout} className="p-2.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400"><Icon name="log-out" size={22} /></button>
-                            </div>
-                        </div>
-                    </header>
-
-                    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                        {/* Stats */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                            <div className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-gray-100 dark:border-dark-border shadow-sm flex justify-between"><div><p className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Total Data</p><h3 className="text-3xl font-bold text-gray-800 dark:text-white">{data.length}</h3></div><div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-xl text-bpbd-blue"><Icon name="files" size={24}/></div></div>
-                            <div className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-gray-100 dark:border-dark-border shadow-sm flex justify-between"><div><p className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Total Kerugian</p><h3 className="text-3xl font-bold text-gray-800 dark:text-white">Rp {(data.reduce((a,b)=>a+b.kerugianAset,0)/1000000).toFixed(0)} Jt</h3></div><div className="bg-red-50 dark:bg-red-900/30 p-3 rounded-xl text-red-600"><Icon name="trending-down" size={24}/></div></div>
-                            <div className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-gray-100 dark:border-dark-border shadow-sm flex justify-between"><div><p className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Bangunan Berat</p><h3 className="text-3xl font-bold text-gray-800 dark:text-white">{data.filter(d=>(d.ket_bangunan||"").toLowerCase().includes('berat')).length}</h3></div><div className="bg-orange-50 dark:bg-orange-900/30 p-3 rounded-xl text-orange-600"><Icon name="alert-triangle" size={24}/></div></div>
-                        </div>
-
-                        {/* Controls */}
-                        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white dark:bg-dark-card p-3 rounded-2xl border border-gray-200 dark:border-dark-border shadow-sm">
-                            <div className="relative flex-1 w-full"><Icon name="search" size={18} className="absolute left-4 top-3.5 text-gray-400" /><input type="text" className="block w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-bpbd-orange dark:text-white" placeholder="Cari nama warga..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
-                            <select value={sortOption} onChange={(e) => setSortOption(e.target.value)} className="block w-full md:w-48 pl-4 pr-8 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-bpbd-orange dark:text-white cursor-pointer"><option value="newest">Terbaru</option><option value="loss_high">Kerugian Tertinggi</option></select>
-                            <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1"><button onClick={() => setViewMode('grid')} className={`p-2.5 rounded-lg ${viewMode === 'grid' ? 'bg-white dark:bg-gray-700 text-bpbd-blue shadow-sm' : 'text-gray-500'}`}><Icon name="layout-grid" size={18}/></button><button onClick={() => setViewMode('table')} className={`p-2.5 rounded-lg ${viewMode === 'table' ? 'bg-white dark:bg-gray-700 text-bpbd-blue shadow-sm' : 'text-gray-500'}`}><Icon name="table" size={18}/></button></div>
-                        </div>
-
-                        {/* Data Display */}
-                        {loading ? <div className="flex flex-col items-center justify-center py-24"><div className="loader mb-4"></div><p className="text-gray-500 font-medium">Sinkronisasi data...</p></div> :
-                         processedData.length === 0 ? <div className="text-center py-24 bg-white dark:bg-dark-card border border-dashed border-gray-300 dark:border-gray-700 rounded-3xl"><Icon name="search-x" className="mx-auto text-gray-300 mb-4" size={64}/><h3 className="text-lg font-bold text-gray-800 dark:text-white">Data Tidak Ditemukan</h3></div> :
-                         viewMode === 'grid' ? 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {processedData.map(item => (
-                                    <div key={item.id} className="bg-white dark:bg-dark-card rounded-2xl border border-gray-200 dark:border-dark-border hover:shadow-xl transition-all overflow-hidden flex flex-col h-full">
-                                        <div className="h-56 bg-gray-100 dark:bg-gray-800 relative overflow-hidden">
-                                            <img src={item.fotoURL} className="w-full h-full object-cover" onError={(e) => {e.target.src='https://placehold.co/600x400?text=No+Image'}} />
-                                            <div className="absolute top-4 right-4"><StatusBadge /></div>
-                                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-5 pt-12"><p className="text-white font-medium truncate flex items-center gap-1.5 text-sm"><Icon name="map-pin" size={14} className="text-bpbd-orange"/> {item.alamat}</p></div>
-                                        </div>
-                                        <div className="p-6 flex-1 flex flex-col">
-                                            <div className="mb-4"><h3 className="font-bold text-gray-900 dark:text-white text-lg truncate mb-1">{item.nama}</h3><p className="text-sm text-gray-500 dark:text-gray-400">Aset: <span className="font-medium text-gray-700 dark:text-gray-300">{item.jenisBangunan} ({item.luasBangunan} m²)</span></p></div>
-                                            <div className="space-y-3 mb-6 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700"><div className="flex justify-between text-sm"><span className="text-gray-500 dark:text-gray-400">Kerugian</span><span className="font-bold text-red-600 dark:text-red-400">Rp {(item.kerugianAset/1000000).toFixed(1)} Jt</span></div></div>
-                                            <div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                                                <button onClick={() => setSelectedItem(item)} className="text-bpbd-blue dark:text-blue-400 text-sm font-bold flex items-center gap-1">Lihat Detail <Icon name="arrow-right" size={16}/></button>
-                                                {canEditDelete(item) && <button onClick={() => handleDelete(item.id)} className="p-2 text-gray-400 hover:text-red-500"><Icon name="trash-2" size={18}/></button>}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        :
-                            <div className="bg-white dark:bg-dark-card rounded-2xl border border-gray-200 dark:border-dark-border shadow-sm overflow-hidden">
-                                <div className="overflow-x-auto"><table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700"><thead className="bg-gray-50 dark:bg-gray-800"><tr><th className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Identitas</th><th className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Lokasi</th><th className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Kerugian</th><th className="px-6 py-4 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Aksi</th></tr></thead><tbody className="bg-white dark:bg-dark-card divide-y divide-gray-200 dark:divide-gray-700">{processedData.map(item => (<tr key={item.id} className="hover:bg-blue-50/50 dark:hover:bg-blue-900/10"><td className="px-6 py-4"><div className="font-bold text-gray-900 dark:text-white">{item.nama}</div><div className="text-xs text-gray-500">{item.timestamp}</div></td><td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-300">{item.alamat}</td><td className="px-6 py-4 font-bold text-red-600 dark:text-red-400">Rp {item.kerugianAset.toLocaleString('id-ID')}</td><td className="px-6 py-4 text-right"><button onClick={() => setSelectedItem(item)} className="text-bpbd-blue font-bold mr-3">Detail</button></td></tr>))}</tbody></table></div>
-                            </div>
+                    if (data.messages && Array.isArray(data.messages)) {
+                        // Cek apakah ada pesan baru
+                        if (JSON.stringify(data.messages) !== JSON.stringify(messages)) {
+                            messages = data.messages;
+                            renderInbox();
                         }
-                    </main>
+                    }
+                } catch (error) {
+                    console.error("Gagal mengambil pesan:", error);
+                }
+            }
 
-                    {/* MODAL */}
-                    {selectedItem && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-                            <div className="bg-white dark:bg-dark-card rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col border border-gray-200 dark:border-dark-border">
-                                <div className="px-8 py-5 border-b border-gray-100 dark:border-dark-border flex justify-between items-center"><div><h2 className="text-2xl font-bold text-gray-800 dark:text-white">Detail Laporan</h2><p className="text-sm text-gray-500">ID: {selectedItem.id}</p></div><button onClick={() => setSelectedItem(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"><Icon name="x" size={24} /></button></div>
-                                <div className="overflow-y-auto p-8 bg-gray-50/50 dark:bg-gray-900/50">
-                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                                        <div className="lg:col-span-5 space-y-6">
-                                            <div className="aspect-video bg-gray-200 rounded-xl overflow-hidden relative"><img src={selectedItem.fotoURL} className="w-full h-full object-cover" onError={(e) => {e.target.src='https://placehold.co/600x400?text=No+Image'}} /><div className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded">Bukti Kerusakan</div></div>
-                                            <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm"><h4 className="text-sm font-bold text-gray-400 uppercase mb-4">Status</h4><StatusBadge /></div>
-                                        </div>
-                                        <div className="lg:col-span-7 space-y-6">
-                                            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2 dark:text-white"><Icon name="user" size={20} className="text-bpbd-blue"/> Informasi Pemilik</h3>
-                                                <div className="grid grid-cols-2 gap-4 text-sm text-gray-700 dark:text-gray-300">
-                                                    <div><p className="text-gray-500">Nama</p><p className="font-medium">{selectedItem.nama}</p></div>
-                                                    <div><p className="text-gray-500">Pekerjaan</p><p className="font-medium">{selectedItem.pekerjaan}</p></div>
-                                                    <div><p className="text-gray-500">Penghasilan/Hari</p><p className="font-medium">Rp {selectedItem.penghasilan.toLocaleString()}</p></div>
-                                                    <div><p className="text-gray-500">Jml Keluarga</p><p className="font-medium">{selectedItem.jml_keluarga} (KK: {selectedItem.jml_kk})</p></div>
-                                                    <div className="col-span-2 pt-2 border-t border-dashed dark:border-gray-600"><p className="text-gray-500">Alamat</p><p className="font-medium">{selectedItem.alamat} (RT {selectedItem.rt}/RW {selectedItem.rw})</p><p className="text-xs text-gray-400 mt-1">{selectedItem.kelurahan}</p></div>
-                                                </div>
-                                            </div>
-                                            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2 dark:text-white"><Icon name="bar-chart-2" size={20} className="text-bpbd-orange"/> Kerusakan & Kerugian</h3>
-                                                <div className="grid grid-cols-2 gap-4 mb-4">
-                                                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg"><p className="text-xs text-gray-500">Jenis</p><p className="font-bold dark:text-white">{selectedItem.jenisBangunan}</p></div>
-                                                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg"><p className="text-xs text-gray-500">Total Kerugian</p><p className="font-bold text-red-600 dark:text-red-400">Rp {selectedItem.kerugianAset.toLocaleString()}</p></div>
-                                                </div>
-                                                <DamageBar label="Atap" value={selectedItem.atap} /><DamageBar label="Dinding" value={selectedItem.dinding} />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="px-8 py-5 border-t border-gray-100 dark:border-dark-border flex justify-end gap-4">
-                                    <button onClick={() => setSelectedItem(null)} className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-bold rounded-xl">Tutup</button>
-                                    <button onClick={() => generatePDF(selectedItem)} className="px-6 py-2.5 bg-bpbd-blue text-white font-bold rounded-xl flex items-center gap-2 hover:bg-blue-900"><Icon name="printer" size={18}/> Cetak PDF Lengkap</button>
-                                </div>
-                            </div>
+            icon.classList.remove('animate-spin');
+        }
+
+        function renderInbox() {
+            const listContainer = document.getElementById('inbox-list');
+            const countBadge = document.getElementById('msg-count');
+            
+            countBadge.textContent = messages.length;
+
+            if (messages.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-slate-500 text-center p-6">
+                        <div class="w-12 h-12 bg-slate-700/30 rounded-full flex items-center justify-center mb-3">
+                            <i data-lucide="inbox" class="w-6 h-6 opacity-50"></i>
                         </div>
-                    )}
-                </div>
-            );
-        };
+                        <p class="text-sm">Kotak masuk kosong</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
 
-        const App = () => {
-            const [user, setUser] = useState(null);
-            const [settings, setSettings] = useState([]);
-            const [loadingUser, setLoadingUser] = useState(false);
-            const [loginError, setLoginError] = useState("");
-            const [isDark, setIsDark] = useState(false);
+            let html = '';
+            messages.forEach(msg => {
+                const avatarChar = msg.avatar || msg.from.charAt(0).toUpperCase();
+                html += `
+                    <div onclick="openMessage(${msg.id})" class="p-3.5 rounded-xl cursor-pointer transition-all border border-transparent hover:bg-slate-700/40 hover:border-slate-600/50 group">
+                        <div class="flex justify-between items-start mb-1.5">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-7 h-7 rounded-full bg-slate-700 text-slate-300 flex items-center justify-center text-xs font-bold group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                    ${avatarChar}
+                                </div>
+                                <span class="font-medium text-xs md:text-sm text-slate-200 truncate max-w-[100px] md:max-w-[120px]">${msg.from}</span>
+                            </div>
+                            <span class="text-[10px] text-slate-500 font-mono">${msg.date}</span>
+                        </div>
+                        <h4 class="text-sm font-semibold text-slate-300 mb-1 truncate pr-2">${msg.subject}</h4>
+                        <p class="text-xs text-slate-500 line-clamp-1">${msg.body}</p>
+                    </div>
+                `;
+            });
 
-            useEffect(() => {
-                const u = localStorage.getItem('siGapUser'); if(u) setUser(JSON.parse(u));
-                const t = localStorage.getItem('theme'); 
-                if(t === 'dark') { setIsDark(true); document.documentElement.classList.add('dark'); }
+            listContainer.innerHTML = html;
+            lucide.createIcons(); // Refresh icons di elemen baru
+        }
+
+        function openMessage(id) {
+            const msg = messages.find(m => m.id == id);
+            if (!msg) return;
+
+            // Update UI Detail
+            document.getElementById('view-subject').textContent = msg.subject;
+            document.getElementById('view-date').textContent = msg.date;
+            document.getElementById('view-from').textContent = msg.from;
+            document.getElementById('view-body').textContent = msg.body;
+            document.getElementById('view-avatar').textContent = msg.avatar || msg.from.charAt(0).toUpperCase();
+
+            // Toggle Visibility
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('content-state').classList.remove('hidden');
+            document.getElementById('content-state').classList.add('flex');
+
+            // Mobile: Scroll to view
+            if (window.innerWidth < 768) {
+                document.getElementById('message-view').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function closeMessage() {
+            document.getElementById('empty-state').classList.remove('hidden');
+            document.getElementById('content-state').classList.add('hidden');
+            document.getElementById('content-state').classList.remove('flex');
+        }
+
+        function copyEmail() {
+            const emailInput = document.getElementById('email-input');
+            const btnText = document.getElementById('btn-copy-text');
+            const btnIcon = document.getElementById('btn-copy').querySelector('i');
+
+            navigator.clipboard.writeText(emailInput.value).then(() => {
+                // Feedback UI
+                btnText.textContent = "Disalin!";
+                btnIcon.setAttribute('data-lucide', 'check');
+                lucide.createIcons();
                 
-                // Fetch Settings
-                if (!CONFIG.SETTINGS_URL || CONFIG.SETTINGS_URL.includes("docs.google")) {
-                    setSettings(MOCK_DATA_SETTINGS); 
-                } else {
-                    Papa.parse(CONFIG.SETTINGS_URL, {
-                        download: true, header: true,
-                        complete: (res) => setSettings(res.data),
-                        error: () => setSettings(MOCK_DATA_SETTINGS)
-                    });
-                }
-            }, []);
-
-            const toggleTheme = () => {
-                const n = !isDark; setIsDark(n);
-                if(n) { document.documentElement.classList.add('dark'); localStorage.setItem('theme', 'dark'); }
-                else { document.documentElement.classList.remove('dark'); localStorage.setItem('theme', 'light'); }
-            };
-
-            const handleLogin = (email, pass) => {
-                setLoadingUser(true);
-                // Check against mock or real CSV
-                const checkUser = (usersList) => {
-                    const u = usersList.find(x => x.Email === email && x.Password === pass);
-                    if(u) { setUser(u); localStorage.setItem('siGapUser', JSON.stringify(u)); }
-                    else setLoginError("Email/Password salah");
-                    setLoadingUser(false);
-                };
-
-                if (!CONFIG.USERS_URL || CONFIG.USERS_URL.includes("docs.google")) {
-                    setTimeout(() => checkUser(MOCK_DATA_USERS), 800);
-                } else {
-                    Papa.parse(CONFIG.USERS_URL, { download: true, header: true, complete: (res) => checkUser(res.data), error: () => checkUser(MOCK_DATA_USERS) });
-                }
-            };
-
-            const handleLogout = () => { setUser(null); localStorage.removeItem('siGapUser'); };
-
-            return !user ? <LoginPage onLogin={handleLogin} loading={loadingUser} error={loginError} isDark={isDark} /> : <Dashboard user={user} onLogout={handleLogout} settings={settings} isDark={isDark} toggleTheme={toggleTheme} />;
-        };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+                setTimeout(() => {
+                    btnText.textContent = "Salin";
+                    btnIcon.setAttribute('data-lucide', 'copy');
+                    lucide.createIcons();
+                }, 2000);
+            });
+        }
     </script>
 </body>
 </html>
+
