@@ -1,248 +1,45 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Email Sementara Kustom</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.7/dayjs.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.7/plugin/relativeTime.min.js"></script>
-    <script>dayjs.extend(window.dayjs_plugin_relativeTime)</script>
-    <style>
-        /* Efek Loading berkedip */
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .5; }
-        }
-        .animate-pulse-custom {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GGMail</title>
+  <link rel="icon" href="https://bpbd.jakarta.go.id/assets/bpbd/img/logo-bpbd.png">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #eee;
+      overflow: hidden; /* Mencegah scroll ganda */
+    }
+
+    .iframe-container {
+      width: 100%;
+      height: 100dvh; /* Menggunakan dvh agar pas di mobile browser */
+      overflow: hidden;
+    }
+
+    iframe {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
 </head>
-<body class="bg-slate-900 text-slate-200 min-h-screen font-sans">
-
-    <div class="container mx-auto max-w-4xl p-4">
-        <!-- Header -->
-        <header class="text-center py-10">
-            <h1 class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600 mb-2">
-                CloudMail Temp
-            </h1>
-            <p class="text-slate-400">Layanan Email Sementara dengan Domain Kustom</p>
-        </header>
-
-        <!-- Bagian Kontrol Email -->
-        <div class="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700 mb-8">
-            <label class="block text-sm font-medium text-slate-400 mb-2">Buat Alamat Email Anda</label>
-            <div class="flex flex-col md:flex-row gap-4">
-                <div class="flex-1 flex bg-slate-900 rounded-lg border border-slate-600 overflow-hidden">
-                    <input type="text" id="usernameInput" placeholder="nama-kustom" 
-                        class="bg-transparent text-white px-4 py-3 w-full focus:outline-none placeholder-slate-500">
-                    <div class="bg-slate-700 px-4 py-3 text-slate-300 border-l border-slate-600" id="domainDisplay">
-                        @domainanda.com
-                    </div>
-                </div>
-                <button onclick="setAddress()" 
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
-                    Gunakan / Refresh
-                </button>
-            </div>
-            <div class="mt-2 text-xs text-slate-500 flex justify-between items-center">
-                <span id="statusText">Menunggu input...</span>
-                <button onclick="copyEmail()" class="text-cyan-400 hover:underline hidden" id="copyBtn">Salin Alamat</button>
-            </div>
-        </div>
-
-        <!-- Area Inbox -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 h-[600px]">
-            
-            <!-- Daftar Email (Kiri) -->
-            <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 flex flex-col overflow-hidden col-span-1">
-                <div class="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center">
-                    <h2 class="font-semibold text-slate-200">Kotak Masuk</h2>
-                    <span id="autoRefreshTimer" class="text-xs text-slate-500"></span>
-                </div>
-                <div id="emailList" class="overflow-y-auto flex-1 p-2 space-y-2">
-                    <!-- Item email akan muncul di sini -->
-                    <div class="text-center py-10 text-slate-500 text-sm">
-                        Belum ada email masuk...
-                    </div>
-                </div>
-            </div>
-
-            <!-- Detail Email (Kanan) -->
-            <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 col-span-1 md:col-span-2 flex flex-col overflow-hidden">
-                <div id="emptyState" class="flex-1 flex flex-col items-center justify-center text-slate-500 p-10 text-center">
-                    <svg class="w-16 h-16 mb-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                    <p>Pilih email dari daftar untuk membaca isinya.</p>
-                </div>
-                
-                <div id="emailContent" class="hidden flex-col h-full">
-                    <div class="p-6 border-b border-slate-700 bg-slate-850">
-                        <h2 id="msgSubject" class="text-xl font-bold text-white mb-2">Subject</h2>
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-sm text-slate-400">Dari: <span id="msgFrom" class="text-slate-200">Sender</span></p>
-                                <p class="text-xs text-slate-500" id="msgDate">Time</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex-1 overflow-y-auto bg-white">
-                        <!-- Iframe sandboxed untuk keamanan render HTML email -->
-                        <iframe id="msgBody" class="w-full h-full border-0" sandbox="allow-same-origin"></iframe>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- Konfigurasi JavaScript -->
-    <script>
-        // --- KONFIGURASI PENTING ---
-        // Ganti URL ini dengan URL Worker Cloudflare Anda setelah deploy
-        const WORKER_URL = 'https://admin.cpns-bpbddki.workers.dev'; 
-        
-        // Ganti ini dengan domain email yang Anda pasang di Cloudflare
-        const EMAIL_DOMAIN = 'jitupasna.online'; 
-        // ---------------------------
-
-        let currentEmail = '';
-        let pollingInterval;
-        let emailsData = [];
-
-        document.getElementById('domainDisplay').textContent = '@' + EMAIL_DOMAIN;
-
-        // Cek jika ada email tersimpan di localStorage
-        const savedUser = localStorage.getItem('temp_mail_user');
-        if (savedUser) {
-            document.getElementById('usernameInput').value = savedUser;
-            setAddress();
-        } else {
-            // Generate random jika belum ada
-            generateRandom();
-        }
-
-        function generateRandom() {
-            const randomUser = Math.random().toString(36).substring(2, 10);
-            document.getElementById('usernameInput').value = randomUser;
-        }
-
-        function setAddress() {
-            const user = document.getElementById('usernameInput').value.trim().toLowerCase().replace(/[^a-z0-9._-]/g, '');
-            if (!user) return alert("Masukkan nama email!");
-            
-            // Simpan ke input (jika dibersihkan oleh regex)
-            document.getElementById('usernameInput').value = user;
-
-            currentEmail = `${user}@${EMAIL_DOMAIN}`;
-            localStorage.setItem('temp_mail_user', user);
-
-            // Update UI
-            document.getElementById('statusText').innerHTML = `Inbox aktif: <span class="text-green-400 font-mono">${currentEmail}</span>`;
-            document.getElementById('copyBtn').classList.remove('hidden');
-
-            // Reset View
-            document.getElementById('emailList').innerHTML = '<div class="text-center py-4 text-slate-500">Memuat...</div>';
-            document.getElementById('emptyState').classList.remove('hidden');
-            document.getElementById('emailContent').classList.add('hidden');
-
-            // Mulai Polling
-            fetchEmails();
-            if (pollingInterval) clearInterval(pollingInterval);
-            pollingInterval = setInterval(fetchEmails, 10000); // Cek tiap 10 detik
-        }
-
-        async function fetchEmails() {
-            const btn = document.querySelector('button[onclick="setAddress()"]');
-            btn.classList.add('animate-pulse-custom');
-
-            try {
-                const res = await fetch(`${WORKER_URL}/api/inbox?address=${currentEmail}`);
-                const data = await res.json();
-                
-                // Simpan data untuk akses detail nanti
-                emailsData = data; 
-                renderList(data);
-            } catch (err) {
-                console.error("Gagal mengambil email", err);
-            } finally {
-                btn.classList.remove('animate-pulse-custom');
-            }
-        }
-
-        function renderList(emails) {
-            const listEl = document.getElementById('emailList');
-            
-            if (emails.length === 0) {
-                listEl.innerHTML = '<div class="text-center py-10 text-slate-500 text-sm">Belum ada email masuk...</div>';
-                return;
-            }
-
-            listEl.innerHTML = '';
-            emails.forEach((email, index) => {
-                const isSelected = false; // Logic selection bisa ditambahkan
-                const el = document.createElement('div');
-                el.className = `p-3 rounded-lg cursor-pointer hover:bg-slate-700 transition border border-transparent hover:border-slate-600 mb-1`;
-                
-                // Parse Sender agar lebih rapi (e.g. "Google <no-reply@google.com>" -> "Google")
-                let senderName = email.from.replace(/<.*>/, '').trim() || email.from;
-
-                el.innerHTML = `
-                    <div class="flex justify-between items-start mb-1">
-                        <span class="font-bold text-slate-200 truncate w-2/3">${senderName}</span>
-                        <span class="text-xs text-slate-500">${dayjs(email.receivedAt).fromNow(true)}</span>
-                    </div>
-                    <div class="text-sm text-slate-400 font-medium truncate">${email.subject}</div>
-                    <div class="text-xs text-slate-500 truncate mt-1">${email.text ? email.text.substring(0, 50) : 'HTML Content'}...</div>
-                `;
-                
-                el.onclick = () => openEmail(index);
-                listEl.appendChild(el);
-            });
-        }
-
-        function openEmail(index) {
-            const email = emailsData[index];
-            if (!email) return;
-
-            document.getElementById('emptyState').classList.add('hidden');
-            document.getElementById('emailContent').classList.remove('hidden');
-
-            document.getElementById('msgSubject').textContent = email.subject;
-            document.getElementById('msgFrom').textContent = email.from;
-            document.getElementById('msgDate').textContent = dayjs(email.receivedAt).format('DD MMM YYYY, HH:mm:ss');
-
-            const iframe = document.getElementById('msgBody');
-            const doc = iframe.contentDocument || iframe.contentWindow.document;
-            
-            // Render HTML content atau Fallback ke Text
-            const content = email.html || `<pre style="white-space: pre-wrap; font-family: sans-serif; padding: 20px;">${email.text}</pre>`;
-            
-            doc.open();
-            doc.write(`
-                <style>body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #333; margin: 0; padding: 20px; }</style>
-                ${content}
-                <!-- Disable link clicks inside iframe for security -->
-                <script>
-                    document.addEventListener('click', function(e) {
-                        if (e.target.tagName === 'A') {
-                            e.preventDefault();
-                            window.open(e.target.href, '_blank');
-                        }
-                    })
-                <\/script>
-            `);
-            doc.close();
-        }
-
-        function copyEmail() {
-            navigator.clipboard.writeText(currentEmail);
-            const btn = document.getElementById('copyBtn');
-            const originalText = btn.textContent;
-            btn.textContent = "Tersalin!";
-            setTimeout(() => btn.textContent = originalText, 2000);
-        }
-    </script>
+<body>
+  <div class="iframe-container">
+    <iframe
+      id="app"
+      src="https://script.google.com/macros/s/AKfycbzLH8bhwMTM-1eUmWS0fyKDrP8hD6wPwpCCF5I-Xu9qkFvMK8oVIPiaJG051y-9521fNA/exec"
+      scrolling="yes"
+      allowfullscreen="true"
+      webkitallowfullscreen="true"
+      mozallowfullscreen="true"
+      allow="fullscreen; camera; microphone; display-capture; geolocation;">
+    </iframe>
+  </div>
 </body>
 </html>
-
